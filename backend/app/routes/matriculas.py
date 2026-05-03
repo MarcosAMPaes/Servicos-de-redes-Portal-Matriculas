@@ -10,12 +10,22 @@ from ..schemas.matriculas import (
     MatriculaOut, MatriculaDetalhada,
 )
 
-router = APIRouter(prefix="/matriculas", tags=["Matrículas"])
+router = APIRouter(prefix="/matriculas", tags=["🔗 Matrículas"])
 
 STATUS_VALIDOS = {"ativa", "trancada", "concluida", "cancelada"}
 
 
-@router.get("", response_model=List[MatriculaDetalhada])
+@router.get(
+    "",
+    response_model=List[MatriculaDetalhada],
+    summary="Listar matrículas",
+    description="""
+Lista todas as matrículas com dados completos de aluno e curso.
+
+Rota restrita a administradores.
+""",
+    responses={403: {"description": "Acesso restrito a administradores."}},
+)
 def listar_matriculas(
     db: Session = Depends(get_db),
     _: dict = Depends(require_admin),
@@ -23,7 +33,29 @@ def listar_matriculas(
     return db.query(models.Matricula).order_by(models.Matricula.id).all()
 
 
-@router.post("", response_model=MatriculaOut, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=MatriculaOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Criar matrícula",
+    description="""
+Cria o vínculo entre um aluno ativo e um curso ativo.
+
+Regras aplicadas:
+
+- `status` precisa ser um dos valores permitidos.
+- O aluno precisa existir e estar ativo.
+- O curso precisa existir e estar ativo.
+- A combinação aluno + curso não pode estar duplicada.
+""",
+    responses={
+        201: {"description": "Matrícula criada com sucesso."},
+        400: {"description": "Status inválido."},
+        403: {"description": "Acesso restrito a administradores."},
+        404: {"description": "Aluno ou curso não encontrado/inativo."},
+        409: {"description": "Aluno já matriculado neste curso."},
+    },
+)
 def criar_matricula(
     payload: MatriculaCreate,
     db: Session = Depends(get_db),
@@ -63,7 +95,16 @@ def criar_matricula(
     return matricula
 
 
-@router.get("/{matricula_id}", response_model=MatriculaDetalhada)
+@router.get(
+    "/{matricula_id}",
+    response_model=MatriculaDetalhada,
+    summary="Buscar matrícula por ID",
+    description="Retorna uma matrícula específica com os dados de aluno e curso embutidos.",
+    responses={
+        403: {"description": "Acesso restrito a administradores."},
+        404: {"description": "Matrícula não encontrada."},
+    },
+)
 def obter_matricula(
     matricula_id: int,
     db: Session = Depends(get_db),
@@ -75,7 +116,21 @@ def obter_matricula(
     return m
 
 
-@router.put("/{matricula_id}", response_model=MatriculaOut)
+@router.put(
+    "/{matricula_id}",
+    response_model=MatriculaOut,
+    summary="Atualizar matrícula",
+    description="""
+Atualiza o status e/ou a data de matrícula.
+
+Status aceitos: `ativa`, `trancada`, `concluida`, `cancelada`.
+""",
+    responses={
+        400: {"description": "Status inválido."},
+        403: {"description": "Acesso restrito a administradores."},
+        404: {"description": "Matrícula não encontrada."},
+    },
+)
 def atualizar_matricula(
     matricula_id: int,
     payload: MatriculaUpdate,
@@ -97,7 +152,21 @@ def atualizar_matricula(
     return m
 
 
-@router.delete("/{matricula_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{matricula_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Cancelar matrícula",
+    description="""
+Realiza exclusão lógica da matrícula.
+
+O registro permanece no banco, mas o campo `status` passa para `cancelada`.
+""",
+    responses={
+        204: {"description": "Matrícula cancelada com sucesso."},
+        403: {"description": "Acesso restrito a administradores."},
+        404: {"description": "Matrícula não encontrada."},
+    },
+)
 def cancelar_matricula(
     matricula_id: int,
     db: Session = Depends(get_db),

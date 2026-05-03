@@ -6,10 +6,25 @@ from ..database import get_db
 from ..security import criar_token, get_current_user
 from ..schemas.auth import LoginInput, TokenOutput, MeOutput
 
-router = APIRouter(prefix="/auth", tags=["Autenticação"])
+router = APIRouter(prefix="/auth", tags=["🔐 Autenticação"])
 
 
-@router.post("/login", response_model=TokenOutput)
+@router.post(
+    "/login",
+    response_model=TokenOutput,
+    summary="Realizar login",
+    description="""
+Autentica **administradores** e **alunos**.
+
+- Admin entra com e-mail e senha.
+- Aluno entra com e-mail ou número de matrícula.
+- Em caso de sucesso, retorna um token JWT usado no botão **Authorize** do Swagger.
+""",
+    responses={
+        200: {"description": "Login realizado e token JWT gerado."},
+        401: {"description": "Credenciais inválidas."},
+    },
+)
 def login(payload: LoginInput, db: Session = Depends(get_db)):
     admin = db.query(models.Administrador).filter(
         models.Administrador.email == payload.email,
@@ -38,7 +53,20 @@ def login(payload: LoginInput, db: Session = Depends(get_db)):
     )
 
 
-@router.get("/me", response_model=MeOutput)
+@router.get(
+    "/me",
+    response_model=MeOutput,
+    summary="Identificar usuário logado",
+    description="""
+Retorna os dados básicos do usuário autenticado pelo token JWT.
+
+Use esta rota para confirmar se o token pertence a um **admin** ou a um **aluno**.
+""",
+    responses={
+        200: {"description": "Usuário autenticado encontrado."},
+        401: {"description": "Token ausente, inválido ou expirado."},
+    },
+)
 def me(current: dict = Depends(get_current_user)):
     user = current["user"]
     return {"id": user.id, "nome": user.nome, "email": user.email, "tipo": current["tipo"]}
