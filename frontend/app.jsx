@@ -1,4 +1,3 @@
-/* Root App — orchestrates session, theme, navigation */
 
 const { useState: useStateApp, useEffect: useEffectApp } = React;
 
@@ -7,7 +6,6 @@ const App = () => {
   const [route, setRoute] = useStateApp('dashboard');
   const [theme, setTheme] = useStateApp(() => localStorage.getItem('pm-theme') || 'light');
 
-  // Dados vindos da API. Começam vazios e são carregados após o login.
   const [alunos, setAlunos]         = useStateApp([]);
   const [cursos, setCursos]         = useStateApp([]);
   const [matriculas, setMatriculas] = useStateApp([]);
@@ -59,7 +57,6 @@ const App = () => {
     setMatriculas([]);
   };
 
-  // Tweaks panel — light/dark
   useEffectApp(() => {
     const onMsg = (e) => {
       if (e.data?.type === '__activate_edit_mode')   window.__pmShowTweaks?.(true);

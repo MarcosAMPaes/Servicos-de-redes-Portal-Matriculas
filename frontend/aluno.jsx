@@ -1,4 +1,3 @@
-/* Aluno area: home, meus dados, meus cursos */
 
 const AlunoHome = ({ session, cursos, matriculas, onNav }) => {
   const aluno = session.user;
@@ -12,7 +11,6 @@ const AlunoHome = ({ session, cursos, matriculas, onNav }) => {
 
   return (
     <PageWrap>
-      {/* hero */}
       <div style={{
         position: 'relative',
         background: 'linear-gradient(135deg, var(--pastel-blue-soft), var(--pastel-green-soft) 60%, var(--pastel-peach-soft))',
@@ -42,7 +40,6 @@ const AlunoHome = ({ session, cursos, matriculas, onNav }) => {
         </div>
       </div>
 
-      {/* stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 14 }}>
         {[
           { eyebrow: 'Cursos ativos', value: ativas.length, sub: ativas.length === 1 ? 'curso em andamento' : 'cursos em andamento', color: 'green' },
@@ -69,7 +66,6 @@ const AlunoHome = ({ session, cursos, matriculas, onNav }) => {
         ))}
       </div>
 
-      {/* meus cursos quick view */}
       <div className="card" style={{ overflow: 'hidden' }}>
         <div style={{ padding: '18px 22px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>

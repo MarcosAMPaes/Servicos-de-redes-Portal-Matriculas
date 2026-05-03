@@ -1,4 +1,3 @@
-/* Admin: CRUD Matriculas */
 
 const MatriculaForm = ({ value, onChange, alunos, cursos }) => {
   const v = value || {};

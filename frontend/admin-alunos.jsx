@@ -1,4 +1,3 @@
-/* Admin: CRUD Alunos */
 
 const AlunoForm = ({ value, onChange }) => {
   const v = value || {};
@@ -46,7 +45,7 @@ const AlunoForm = ({ value, onChange }) => {
 
 const AdminAlunos = ({ alunos, cursos, matriculas, setAlunos }) => {
   const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState('todos'); // todos|ativos|inativos
+  const [filter, setFilter] = useState('todos');
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [confirm, setConfirm] = useState(null);
@@ -113,7 +112,6 @@ const AdminAlunos = ({ alunos, cursos, matriculas, setAlunos }) => {
       </div>
 
       <div className="card" style={{ overflow: 'hidden' }}>
-        {/* toolbar */}
         <div style={{
           padding: 14, display: 'flex', alignItems: 'center', gap: 12,
           borderBottom: '1px solid var(--line)',

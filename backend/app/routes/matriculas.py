@@ -1,9 +1,3 @@
-"""
-CRUD de matrículas — somente administradores.
-
-Exclusão lógica: DELETE altera status para 'cancelada'
-em vez de remover o registro, preservando o histórico.
-"""
 from datetime import date as _date
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -26,7 +20,6 @@ def listar_matriculas(
     db: Session = Depends(get_db),
     _: dict = Depends(require_admin),
 ):
-    """Lista todas as matrículas com dados completos de aluno e curso."""
     return db.query(models.Matricula).order_by(models.Matricula.id).all()
 
 
@@ -36,12 +29,6 @@ def criar_matricula(
     db: Session = Depends(get_db),
     _: dict = Depends(require_admin),
 ):
-    """
-    Cria uma matrícula verificando:
-      1. Aluno existe e está ativo
-      2. Curso existe e está ativo
-      3. Combinação aluno+curso ainda não existe (unicidade)
-    """
     if payload.status not in STATUS_VALIDOS:
         raise HTTPException(status_code=400, detail=f"Status inválido. Use: {STATUS_VALIDOS}")
 
@@ -82,7 +69,6 @@ def obter_matricula(
     db: Session = Depends(get_db),
     _: dict = Depends(require_admin),
 ):
-    """Retorna uma matrícula pelo ID com dados completos."""
     m = db.query(models.Matricula).filter(models.Matricula.id == matricula_id).first()
     if not m:
         raise HTTPException(status_code=404, detail="Matrícula não encontrada.")
@@ -96,7 +82,6 @@ def atualizar_matricula(
     db: Session = Depends(get_db),
     _: dict = Depends(require_admin),
 ):
-    """Atualiza status ou data de uma matrícula."""
     m = db.query(models.Matricula).filter(models.Matricula.id == matricula_id).first()
     if not m:
         raise HTTPException(status_code=404, detail="Matrícula não encontrada.")
@@ -118,10 +103,6 @@ def cancelar_matricula(
     db: Session = Depends(get_db),
     _: dict = Depends(require_admin),
 ):
-    """
-    Exclusão lógica: altera status para 'cancelada'.
-    O registro é mantido — histórico preservado para auditoria.
-    """
     m = db.query(models.Matricula).filter(models.Matricula.id == matricula_id).first()
     if not m:
         raise HTTPException(status_code=404, detail="Matrícula não encontrada.")

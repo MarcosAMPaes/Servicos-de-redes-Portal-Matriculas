@@ -1,5 +1,3 @@
-/* Mock data — Portal de Matrículas
-   Mantemos tudo em useState dentro de App; aqui é só seed inicial. */
 
 const SEED_CURSOS = [
   { id: 1, nome: 'Sistemas de Informação', sigla: 'SI', carga_horaria: 3200,

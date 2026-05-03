@@ -1,34 +1,16 @@
-# ──────────────────────────────────────────────────────────────────────────
-# Portal de Matrículas — Docker Compose
-#
-# Sobe toda a topologia com um único comando:
-#   docker compose up --build
-#
-# Containers:
-#   postgres  → banco de dados (não expõe porta ao host — rede interna)
-#   fastapi   → backend API   (não expõe porta ao host — acesso via NGINX)
-#   nginx     → frontend + proxy reverso (único exposto: portas 80 e 443)
-#
-# Rede: netatividade01 (bridge isolada — cada serviço resolve os outros por nome)
-# Volume: postgres_data (persistência do PostgreSQL entre reinicializações)
-# ──────────────────────────────────────────────────────────────────────────
-
 services:
-
-  # ── PostgreSQL ──────────────────────────────────────────────────────────
+  # PostgreSQL
   postgres:
     image: postgres:16-alpine
     container_name: portal_postgres
     environment:
-      POSTGRES_DB:       ${POSTGRES_DB}
-      POSTGRES_USER:     ${POSTGRES_USER}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
-      # Dados persistidos entre docker compose down/up
       - postgres_data:/var/lib/postgresql/data
     networks:
       - netatividade01
-    # Healthcheck: o FastAPI só inicia depois que pg_isready retornar sucesso
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
@@ -36,23 +18,21 @@ services:
       retries: 5
     restart: unless-stopped
 
-  # ── FastAPI ─────────────────────────────────────────────────────────────
+  # FastAPI
   fastapi:
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: portal_fastapi
     environment:
-      DATABASE_URL:        ${DATABASE_URL}
-      JWT_SECRET_KEY:      ${JWT_SECRET_KEY}
-      JWT_ALGORITHM:       ${JWT_ALGORITHM}
+      DATABASE_URL: ${DATABASE_URL}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_ALGORITHM: ${JWT_ALGORITHM}
       JWT_EXPIRES_MINUTES: ${JWT_EXPIRES_MINUTES}
     volumes:
-      # Volume de código: mudanças são refletidas sem rebuild (uvicorn --reload)
       - ./backend/app:/app/app
     networks:
       - netatividade01
-    # Aguarda o PostgreSQL estar saudável antes de iniciar
     depends_on:
       postgres:
         condition: service_healthy
@@ -63,18 +43,15 @@ services:
       retries: 5
     restart: unless-stopped
 
-  # ── NGINX ────────────────────────────────────────────────────────────────
+  # NGINX
   nginx:
     image: nginx:1.27-alpine
     container_name: portal_nginx
     ports:
-      # Único serviço com portas mapeadas ao hospedeiro (conforme atividade)
-      - "80:8080"    # HTTP  → host:80  acessa nginx:8080
-      - "443:8443"   # HTTPS → host:443 acessa nginx:8443 (fase futura)
+      - "80:8080"
+      - "443:8443"
     volumes:
-      # Configuração do NGINX (somente leitura — :ro)
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      # Arquivos do frontend servidos estáticos
       - ./frontend:/usr/share/nginx/html:ro
     networks:
       - netatividade01
@@ -83,13 +60,11 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-
-# ── Rede isolada da aplicação ─────────────────────────────────────────────
+# Rede
 networks:
   netatividade01:
     driver: bridge
 
-
-# ── Volumes persistentes ──────────────────────────────────────────────────
+# Volumes
 volumes:
   postgres_data:

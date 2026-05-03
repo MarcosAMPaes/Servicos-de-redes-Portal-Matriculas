@@ -1,12 +1,3 @@
-"""
-CRUD de alunos.
-
-Regras de acesso:
-  Admin  → todas as rotas
-  Aluno  → apenas /me, /me/cursos e /me/matriculas (seus próprios dados)
-
-Exclusão lógica: DELETE seta ativo=False, não remove do banco.
-"""
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
@@ -22,12 +13,9 @@ router = APIRouter(prefix="/alunos", tags=["Alunos"])
 CORES = ["blue", "green", "peach", "lilac", "rose"]
 
 
-# ── Rotas do próprio aluno ──────────────────────────────────────────────────
-# Devem vir ANTES de /{aluno_id} para não serem capturadas como parâmetro
 
 @router.get("/me", response_model=AlunoOut)
 def meus_dados(current: dict = Depends(require_aluno)):
-    """Retorna os dados do aluno que está logado."""
     return current["user"]
 
 
@@ -36,10 +24,6 @@ def meus_cursos(
     current: dict = Depends(require_aluno),
     db: Session = Depends(get_db),
 ):
-    """
-    Lista somente os cursos em que o aluno logado está matriculado.
-    Exclui matrículas canceladas do resultado.
-    """
     aluno: models.Aluno = current["user"]
     return (
         db.query(models.Curso)
@@ -57,10 +41,6 @@ def minhas_matriculas(
     current: dict = Depends(require_aluno),
     db: Session = Depends(get_db),
 ):
-    """
-    Lista todas as matrículas do aluno logado, com dados completos
-    de aluno e curso aninhados (evita N+1 no frontend).
-    """
     aluno: models.Aluno = current["user"]
     return (
         db.query(models.Matricula)
@@ -70,14 +50,12 @@ def minhas_matriculas(
     )
 
 
-# ── Rotas administrativas ───────────────────────────────────────────────────
 
 @router.get("", response_model=List[AlunoOut])
 def listar_alunos(
     db: Session = Depends(get_db),
     _: dict = Depends(require_admin),
 ):
-    """Lista todos os alunos (ativos e inativos)."""
     return db.query(models.Aluno).order_by(models.Aluno.id).all()
 
 
@@ -87,10 +65,6 @@ def criar_aluno(
     db: Session = Depends(get_db),
     _: dict = Depends(require_admin),
 ):
-    """
-    Cria um novo aluno.
-    Garante unicidade de e-mail e matrícula antes de inserir.
-    """
     if db.query(models.Aluno).filter(models.Aluno.email == payload.email).first():
         raise HTTPException(status_code=400, detail="E-mail já cadastrado.")
     if db.query(models.Aluno).filter(models.Aluno.matricula == payload.matricula).first():
@@ -113,7 +87,6 @@ def obter_aluno(
     db: Session = Depends(get_db),
     _: dict = Depends(require_admin),
 ):
-    """Retorna um aluno pelo ID."""
     aluno = db.query(models.Aluno).filter(models.Aluno.id == aluno_id).first()
     if not aluno:
         raise HTTPException(status_code=404, detail="Aluno não encontrado.")
@@ -127,10 +100,6 @@ def atualizar_aluno(
     db: Session = Depends(get_db),
     _: dict = Depends(require_admin),
 ):
-    """
-    Atualiza um aluno. Apenas os campos enviados são alterados.
-    Retorna HTTP 400 se e-mail ou matrícula já existirem em outro aluno.
-    """
     aluno = db.query(models.Aluno).filter(models.Aluno.id == aluno_id).first()
     if not aluno:
         raise HTTPException(status_code=404, detail="Aluno não encontrado.")
@@ -159,10 +128,6 @@ def desativar_aluno(
     db: Session = Depends(get_db),
     _: dict = Depends(require_admin),
 ):
-    """
-    Exclusão lógica: seta ativo=False.
-    O histórico de matrículas é preservado para auditoria.
-    """
     aluno = db.query(models.Aluno).filter(models.Aluno.id == aluno_id).first()
     if not aluno:
         raise HTTPException(status_code=404, detail="Aluno não encontrado.")
@@ -176,7 +141,6 @@ def cursos_do_aluno(
     db: Session = Depends(get_db),
     _: dict = Depends(require_admin),
 ):
-    """Lista os cursos (não cancelados) de um aluno específico — visão admin."""
     aluno = db.query(models.Aluno).filter(models.Aluno.id == aluno_id).first()
     if not aluno:
         raise HTTPException(status_code=404, detail="Aluno não encontrado.")

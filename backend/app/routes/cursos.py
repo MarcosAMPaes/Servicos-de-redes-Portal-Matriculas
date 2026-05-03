@@ -1,12 +1,3 @@
-"""
-CRUD de cursos.
-
-Regras de acesso:
-  Admin  → todas as operações
-  Aluno  → somente GET (listar e detalhar)
-
-Exclusão lógica: DELETE seta ativo=False.
-"""
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
@@ -24,7 +15,6 @@ def listar_cursos(
     db: Session = Depends(get_db),
     _: dict = Depends(require_admin),
 ):
-    """Lista todos os cursos. Restrito a administradores."""
     return db.query(models.Curso).order_by(models.Curso.id).all()
 
 
@@ -34,7 +24,6 @@ def criar_curso(
     db: Session = Depends(get_db),
     _: dict = Depends(require_admin),
 ):
-    """Cria um novo curso."""
     curso = models.Curso(**payload.model_dump())
     db.add(curso)
     db.commit()
@@ -48,7 +37,6 @@ def obter_curso(
     db: Session = Depends(get_db),
     _: dict = Depends(require_admin),
 ):
-    """Retorna um curso pelo ID."""
     curso = db.query(models.Curso).filter(models.Curso.id == curso_id).first()
     if not curso:
         raise HTTPException(status_code=404, detail="Curso não encontrado.")
@@ -62,7 +50,6 @@ def atualizar_curso(
     db: Session = Depends(get_db),
     _: dict = Depends(require_admin),
 ):
-    """Atualiza campos de um curso. Apenas os campos enviados são alterados."""
     curso = db.query(models.Curso).filter(models.Curso.id == curso_id).first()
     if not curso:
         raise HTTPException(status_code=404, detail="Curso não encontrado.")
@@ -81,10 +68,6 @@ def desativar_curso(
     db: Session = Depends(get_db),
     _: dict = Depends(require_admin),
 ):
-    """
-    Exclusão lógica: seta ativo=False.
-    Matrículas existentes são preservadas para histórico.
-    """
     curso = db.query(models.Curso).filter(models.Curso.id == curso_id).first()
     if not curso:
         raise HTTPException(status_code=404, detail="Curso não encontrado.")
@@ -98,7 +81,6 @@ def alunos_do_curso(
     db: Session = Depends(get_db),
     _: dict = Depends(require_admin),
 ):
-    """Lista os alunos matriculados (ativamente) em um curso."""
     curso = db.query(models.Curso).filter(models.Curso.id == curso_id).first()
     if not curso:
         raise HTTPException(status_code=404, detail="Curso não encontrado.")

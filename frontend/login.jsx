@@ -1,9 +1,6 @@
-/* Login screen — alternância clara entre admin / aluno
-   Renderiza um split-screen: lado esquerdo editorial, lado direito formulário.
-*/
 
 const Login = ({ onLogin }) => {
-  const [mode, setMode] = useState('admin'); // 'admin' | 'aluno'
+  const [mode, setMode] = useState('admin');
   const [email, setEmail] = useState('admin@portal.local');
   const [senha, setSenha] = useState('admin123');
   const [erro, setErro] = useState('');
@@ -20,16 +17,13 @@ const Login = ({ onLogin }) => {
     e.preventDefault();
     setErro(''); setLoading(true);
     try {
-      // 1. Autentica e recebe JWT + tipo
       const result = await API.login(email, senha);
       API.setToken(result.access_token);
 
-      // 2. Busca os dados do usuário conforme o tipo
       const user = result.tipo === 'admin'
         ? await API.me()
         : await API.meusDados();
 
-      // 3. Repassa para app.jsx — que carregará os dados da sessão
       await onLogin({ tipo: result.tipo, user });
     } catch (err) {
       API.setToken(null);
@@ -40,7 +34,6 @@ const Login = ({ onLogin }) => {
 
   return (
     <div style={{ minHeight: '100vh', display: 'grid', gridTemplateColumns: '1.1fr 1fr', background: 'var(--bg-page)' }}>
-      {/* LEFT — editorial */}
       <div style={{
         position: 'relative',
         background: 'linear-gradient(155deg, var(--pastel-blue-soft) 0%, var(--pastel-green-soft) 60%, var(--pastel-peach-soft) 100%)',
@@ -48,7 +41,6 @@ const Login = ({ onLogin }) => {
         display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
         overflow: 'hidden',
       }}>
-        {/* top mark */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, position: 'relative', zIndex: 2 }}>
           <div style={{
             width: 36, height: 36, borderRadius: 10,
@@ -62,14 +54,12 @@ const Login = ({ onLogin }) => {
           </div>
         </div>
 
-        {/* abstract pastel shapes */}
         <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.65 }} aria-hidden>
           <circle cx="78%" cy="22%" r="160" fill="var(--pastel-lilac)" opacity="0.35" />
           <circle cx="18%" cy="78%" r="200" fill="var(--pastel-peach)" opacity="0.32" />
           <circle cx="60%" cy="60%" r="120" fill="var(--pastel-green)" opacity="0.28" />
         </svg>
 
-        {/* hero */}
         <div style={{ position: 'relative', zIndex: 2, maxWidth: 460 }}>
           <div className="eyebrow" style={{ marginBottom: 18 }}>Período letivo · 2026.1</div>
           <h1 style={{
@@ -85,7 +75,6 @@ const Login = ({ onLogin }) => {
           </p>
         </div>
 
-        {/* footer / topology hint */}
         <div style={{ position: 'relative', zIndex: 2, display: 'flex', gap: 24, alignItems: 'center', flexWrap: 'wrap' }}>
           {[
             { tag: 'nginx',    sub: ':80 (HTTP)' },
@@ -100,10 +89,8 @@ const Login = ({ onLogin }) => {
         </div>
       </div>
 
-      {/* RIGHT — form */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 32 }}>
         <div style={{ width: '100%', maxWidth: 380 }}>
-          {/* role switch */}
           <div style={{
             display: 'inline-flex', padding: 4, borderRadius: 999,
             background: 'var(--bg-soft)', border: '1px solid var(--line)',
@@ -160,7 +147,6 @@ const Login = ({ onLogin }) => {
             </button>
           </form>
 
-          {/* hint */}
           <div style={{
             marginTop: 24, padding: '12px 14px', borderRadius: 10,
             background: 'var(--bg-soft)', border: '1px dashed var(--line-strong)',

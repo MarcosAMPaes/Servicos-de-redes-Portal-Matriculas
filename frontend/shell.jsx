@@ -1,4 +1,3 @@
-/* Shell — sidebar + topbar para Admin e Aluno */
 
 const Sidebar = ({ session, current, onNav, onLogout }) => {
   const adminNav = [
@@ -22,7 +21,6 @@ const Sidebar = ({ session, current, onNav, onLogout }) => {
       display: 'flex', flexDirection: 'column',
       height: '100vh', position: 'sticky', top: 0,
     }}>
-      {/* brand */}
       <div style={{ padding: '20px 20px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
         <div style={{
           width: 34, height: 34, borderRadius: 9,
@@ -36,7 +34,6 @@ const Sidebar = ({ session, current, onNav, onLogout }) => {
         </div>
       </div>
 
-      {/* role tag */}
       <div style={{ padding: '0 20px 16px' }}>
         <div style={{
           display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -51,7 +48,6 @@ const Sidebar = ({ session, current, onNav, onLogout }) => {
         </div>
       </div>
 
-      {/* nav */}
       <nav style={{ padding: '0 12px', display: 'flex', flexDirection: 'column', gap: 2, flex: 1 }}>
         <div className="eyebrow" style={{ padding: '8px 8px 6px', fontSize: 10 }}>Navegação</div>
         {nav.map(item => {
@@ -86,7 +82,6 @@ const Sidebar = ({ session, current, onNav, onLogout }) => {
         })}
       </nav>
 
-      {/* user footer */}
       <div style={{ padding: 12, borderTop: '1px solid var(--line)' }}>
         <div style={{
           display: 'flex', alignItems: 'center', gap: 10, padding: 8,

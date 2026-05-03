@@ -1,9 +1,5 @@
-/* Reusable UI bits — Icon, Avatar, Modal, Toasts, ConfirmDialog
-   All exported on window for the other JSX files. */
-
 const { useState, useEffect, useRef, useMemo, useCallback, createContext, useContext } = React;
 
-/* ===== Icons (stroke-only, hairline) ===== */
 const Icon = ({ name, size = 16, stroke = 1.6 }) => {
   const paths = {
     dashboard: <><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></>,
@@ -44,7 +40,6 @@ const Icon = ({ name, size = 16, stroke = 1.6 }) => {
   );
 };
 
-/* ===== Avatar ===== */
 const Avatar = ({ name, color = 'blue', size = 'md' }) => {
   const initials = name
     .split(/\s+/).filter(Boolean).slice(0, 2)
@@ -54,13 +49,11 @@ const Avatar = ({ name, color = 'blue', size = 'md' }) => {
   return <span className={cls}>{initials}</span>;
 };
 
-/* ===== Status badge ===== */
 const StatusBadge = ({ status }) => {
   const meta = window.STATUS_META[status] || { label: status, badge: 'badge-neutral' };
   return <span className={`badge badge-dot ${meta.badge}`}>{meta.label}</span>;
 };
 
-/* ===== Modal ===== */
 const Modal = ({ open, onClose, title, subtitle, children, footer, width }) => {
   useEffect(() => {
     if (!open) return;
@@ -95,7 +88,6 @@ const Modal = ({ open, onClose, title, subtitle, children, footer, width }) => {
   );
 };
 
-/* ===== Toast (simple imperative store) ===== */
 const ToastContext = createContext({ push: () => {} });
 const useToast = () => useContext(ToastContext);
 
@@ -126,7 +118,6 @@ const ToastProvider = ({ children }) => {
   );
 };
 
-/* ===== ConfirmDialog ===== */
 const ConfirmDialog = ({ open, title, message, confirmLabel = 'Confirmar', tone = 'danger', onConfirm, onClose }) => (
   <Modal open={open} onClose={onClose} title={title} width={420}
     footer={<>
@@ -137,7 +128,6 @@ const ConfirmDialog = ({ open, title, message, confirmLabel = 'Confirmar', tone 
   </Modal>
 );
 
-/* ===== Sparkline / mini bar chart ===== */
 const SparkBars = ({ data, color = 'var(--primary)', height = 56 }) => {
   const max = Math.max(...data, 1);
   return (
@@ -156,7 +146,6 @@ const SparkBars = ({ data, color = 'var(--primary)', height = 56 }) => {
   );
 };
 
-/* ===== Donut ===== */
 const Donut = ({ slices, size = 120, thickness = 14 }) => {
   const total = slices.reduce((s, x) => s + x.value, 0) || 1;
   const r = (size - thickness) / 2;
@@ -184,7 +173,6 @@ const Donut = ({ slices, size = 120, thickness = 14 }) => {
   );
 };
 
-/* ===== Empty state ===== */
 const EmptyState = ({ icon = 'search', title, hint, action }) => (
   <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--ink-500)' }}>
     <div style={{
@@ -201,7 +189,6 @@ const EmptyState = ({ icon = 'search', title, hint, action }) => (
   </div>
 );
 
-/* expose */
 Object.assign(window, {
   Icon, Avatar, StatusBadge, Modal, ConfirmDialog,
   ToastProvider, useToast, SparkBars, Donut, EmptyState,

@@ -1,4 +1,3 @@
-/* Admin: CRUD Cursos */
 
 const CURSO_CORES = ['blue', 'green', 'peach', 'lilac', 'rose'];
 
@@ -117,7 +116,6 @@ const AdminCursos = ({ cursos, matriculas, alunos, setCursos }) => {
             opacity: c.ativo ? 1 : 0.65, position: 'relative',
             display: 'flex', flexDirection: 'column',
           }}>
-            {/* color band */}
             <div style={{
               height: 80, background: `var(--pastel-${c.cor})`,
               position: 'relative', overflow: 'hidden',

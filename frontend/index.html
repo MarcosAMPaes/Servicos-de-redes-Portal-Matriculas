@@ -3,84 +3,26 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <!--
-    ┌─────────────────────────────────────────────────────────────────────────┐
-    │  PORTAL DE MATRÍCULAS — Grupo 4 · Serviços de Redes para Internet       │
-    │  Frontend: React 18 + JSX (transpilado pelo Babel no browser)           │
-    │  Backend (futuro): FastAPI · PostgreSQL · NGINX (proxy reverso)         │
-    │                                                                          │
-    │  Estrutura de arquivos:                                                  │
-    │    api.jsx           → cliente REST para conversar com /api             │
-    │    data.jsx          → dados mock legados / fallback visual             │
-    │    ui.jsx            → componentes base (Icon, Modal, Toast, Avatar…)   │
-    │    login.jsx         → tela de login (admin / aluno)                    │
-    │    shell.jsx         → Sidebar + Topbar (layout compartilhado)          │
-    │    admin-*.jsx       → páginas do administrador (CRUD)                  │
-    │    aluno.jsx         → páginas do aluno (leitura)                       │
-    │    app.jsx           → raiz da aplicação (sessão, rotas, tema)          │
-    │    styles.css        → design tokens + classes utilitárias              │
-    └─────────────────────────────────────────────────────────────────────────┘
-  -->
-
-  <!-- ===== Identidade da aplicação ===== -->
   <title>Portal de Matrículas</title>
-  <meta name="description"
-        content="Sistema acadêmico de gestão de alunos, cursos e matrículas — Grupo 4, Serviços de Redes para Internet." />
-  <meta name="author" content="Grupo 4 — Serviços de Redes para Internet" />
+  <meta name="description" content="Sistema acadêmico de gestão de alunos, cursos e matrículas." />
+  <meta name="author" content="Grupo 4 - Serviços de Redes para Internet" />
 
-  <!--
-    Favicon embutido como SVG em data URI — elimina uma requisição HTTP extra.
-    Em produção, substitua por um arquivo .ico ou .svg real na raiz do projeto.
-  -->
   <link rel="icon" type="image/svg+xml"
         href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%231F2933'/><text x='50%25' y='55%25' dominant-baseline='middle' text-anchor='middle' font-family='monospace' font-size='11' font-weight='700' fill='white'>P/M</text></svg>" />
 
-  <!--
-    Aplica o tema salvo ANTES do primeiro paint.
-
-    Por que isso importa?
-    Sem esse script, o browser pintaria o tema claro (padrão do HTML),
-    e só depois o JavaScript aplicaria o tema escuro salvo — causando
-    um "piscar" visível conhecido como FOUC (Flash Of Unstyled Content).
-
-    O try/catch protege contra ambientes onde localStorage está bloqueado
-    (ex: modo privado em alguns browsers com configurações restritivas).
-  -->
   <script>
     try {
-      const temaSalvo = localStorage.getItem('pm-theme'); // mesma chave usada em app.jsx
+      const temaSalvo = localStorage.getItem('pm-theme');
       if (temaSalvo) document.documentElement.dataset.theme = temaSalvo;
     } catch (_) {}
   </script>
 
-  <!--
-    ===== Fontes =====
-    Inter          → fonte principal; excelente legibilidade em telas
-    JetBrains Mono → fonte monospace para matrículas, IDs e valores técnicos
-
-    preconnect: instrui o browser a abrir a conexão com o servidor de fontes
-    antecipadamente, reduzindo a latência.
-
-    display=swap: exibe o texto com a fonte fallback até a fonte carregar,
-    evitando FOIT (Flash Of Invisible Text).
-  -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
         rel="stylesheet" />
-
-  <!-- ===== Folha de estilos principal ===== -->
   <link rel="stylesheet" href="styles.css" />
 
-  <!--
-    ===== Tela de loading =====
-    Aparece imediatamente (HTML puro, sem JavaScript) e some após o React
-    terminar de montar a aplicação (ver MutationObserver no final do <body>).
-
-    Usa as mesmas CSS custom properties definidas em styles.css, que já
-    carregou acima por ser render-blocking (bloqueia a pintura até carregar).
-  -->
   <style>
     #loading-screen {
       position: fixed;
@@ -131,7 +73,7 @@
 
     @keyframes carregando {
       from { transform: translateX(-150%); }
-      to   { transform: translateX(400%); }
+      to { transform: translateX(400%); }
     }
 
     .loading-rotulo {
@@ -143,157 +85,52 @@
     }
   </style>
 
-  <!--
-    ===== Dependências externas (CDN) =====
-
-    Por que CDN em vez de npm/bundler?
-    Este é um protótipo de alta fidelidade que roda diretamente no browser,
-    sem etapa de build. Para produção, o correto seria usar Vite ou similar.
-
-    Para servir sem depender de internet (via NGINX local):
-      1. Baixe os três arquivos .js acima e coloque em /static/vendor/
-      2. Troque os src abaixo para caminhos relativos (./static/vendor/react.js…)
-      3. Mantenha os atributos integrity — continuam válidos para arquivos locais.
-
-    Ordem de carregamento (importante — cada script depende do anterior):
-      1. React core   → define window.React com a engine de renderização
-      2. ReactDOM     → usa window.React para montar a UI no DOM real
-      3. Babel        → lê os <script type="text/babel"> e transpila JSX → JS
-
-    SRI (Subresource Integrity):
-    O atributo integrity contém um hash SHA-384 do arquivo esperado.
-    O browser recusa o script se o conteúdo não bater com o hash —
-    proteção contra ataques de supply-chain no CDN.
-  -->
+  <!-- Dependências -->
   <script src="https://unpkg.com/react@18.3.1/umd/react.development.js"
           integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L"
           crossorigin="anonymous"></script>
-
   <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js"
           integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm"
           crossorigin="anonymous"></script>
-
-  <!--
-    Babel Standalone: transpila JSX → JavaScript no browser em tempo real.
-    Conveniente para desenvolvimento; em produção, pré-compile com Vite/Webpack.
-  -->
   <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js"
           integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y"
           crossorigin="anonymous"></script>
 </head>
 
 <body>
-
-  <!-- Tela de loading: visível até o React montar o primeiro componente -->
   <div id="loading-screen" aria-hidden="true">
     <div class="loading-logo">P/M</div>
     <div class="loading-barra-trilha">
       <div class="loading-barra-preenchimento"></div>
     </div>
-    <span class="loading-rotulo">Carregando…</span>
+    <span class="loading-rotulo">Carregando...</span>
   </div>
 
-  <!--
-    Ponto de montagem do React.
-    O ReactDOM.createRoot() em app.jsx injeta toda a interface aqui.
-    O atributo role="application" informa leitores de tela que este é
-    um app interativo (não apenas conteúdo estático).
-  -->
   <div id="root" role="application" aria-label="Portal de Matrículas"></div>
 
-  <!--
-    Fallback para navegadores com JavaScript desabilitado.
-    Exibido apenas quando JS está indisponível — usuários normais não verão isto.
-  -->
   <noscript>
     <div style="font-family:sans-serif;padding:40px;text-align:center;max-width:480px;margin:80px auto">
       <strong style="font-size:18px;display:block;margin-bottom:12px">Portal de Matrículas</strong>
       <p style="color:#666;line-height:1.6">
         Este portal requer JavaScript habilitado.<br>
-        Ative o JavaScript no seu navegador e recarregue a página.
+        Ative o JavaScript no navegador e recarregue a página.
       </p>
     </div>
   </noscript>
 
-  <!--
-    ╔═══════════════════════════════════════════════════════════════════════╗
-    ║  MÓDULOS DA APLICAÇÃO                                                 ║
-    ║                                                                       ║
-    ║  type="text/babel" → o Babel Standalone intercepta e transpila JSX.  ║
-    ║                                                                       ║
-    ║  Ordem obrigatória (dependências em cascata):                         ║
-    ║    api.jsx          → expõe API.login(), API.getAlunos() etc.         ║
-    ║    data.jsx         → expõe seeds legados em window                   ║
-    ║    ui.jsx           → expõe Icon, Modal, Toast, Avatar… em window     ║
-    ║    login.jsx        → usa API + componentes de ui.jsx                 ║
-    ║    shell.jsx        → usa Icon, Avatar de ui.jsx                      ║
-    ║    admin-*.jsx      → usam API, ui.jsx e estado carregado em app.jsx  ║
-    ║    aluno.jsx        → usa ui.jsx e estado carregado em app.jsx        ║
-    ║    app.jsx          → orquestra tudo; deve ser o último               ║
-    ║                                                                       ║
-    ║  ┌─── PONTO DE INTEGRAÇÃO COM BACKEND (futuro) ──────────────────┐   ║
-    ║  │                                                                │   ║
-    ║  │  O frontend usa api.jsx para chamar as rotas do FastAPI.       │   ║
-    ║  │  Exemplos de endpoints consumidos:                             │   ║
-    ║  │                                                                │   ║
-    ║  │  POST /api/auth/login        → retorna JWT                     │   ║
-    ║  │  GET  /api/alunos            → lista paginada de alunos        │   ║
-    ║  │  POST /api/alunos            → cria novo aluno                 │   ║
-    ║  │  PUT  /api/alunos/:id        → atualiza aluno                  │   ║
-    ║  │  GET  /api/cursos            → lista de cursos                 │   ║
-    ║  │  GET  /api/matriculas        → lista de matrículas             │   ║
-    ║  │  POST /api/matriculas        → cria matrícula                  │   ║
-    ║  │  DELETE /api/matriculas/:id  → remove matrícula                │   ║
-    ║  │                                                                │   ║
-    ║  │  Segurança do token JWT:                                       │   ║
-    ║  │    ✓  httpOnly cookie (proteção contra XSS)                    │   ║
-    ║  │    ✗  localStorage (vulnerável a XSS — evitar para tokens)     │   ║
-    ║  │                                                                │   ║
-    ║  │  O NGINX atuará como proxy reverso (fase 1: HTTP):             │   ║
-    ║  │    :80  → /api/* encaminha para FastAPI (:8080 interno)        │   ║
-    ║  │    :80  → /*    serve os arquivos estáticos do frontend        │   ║
-    ║  │    (TLS/:443 será adicionado em uma fase posterior)            │   ║
-    ║  └────────────────────────────────────────────────────────────────┘   ║
-    ╚═══════════════════════════════════════════════════════════════════════╝
-  -->
-
-  <!-- 1. Cliente REST usado por login, app e telas CRUD -->
+  <!-- Aplicação -->
   <script type="text/babel" src="api.jsx"></script>
-
-  <!-- 2. Dados mock legados — úteis como referência visual durante desenvolvimento -->
   <script type="text/babel" src="data.jsx"></script>
-
-  <!-- 3. Componentes de UI reutilizáveis (base para todos os módulos) -->
   <script type="text/babel" src="ui.jsx"></script>
-
-  <!-- 4. Tela de login (admin e aluno) -->
   <script type="text/babel" src="login.jsx"></script>
-
-  <!-- 5. Estrutura da página autenticada (sidebar + topbar) -->
   <script type="text/babel" src="shell.jsx"></script>
-
-  <!-- 6. Páginas do administrador (CRUD de alunos, cursos e matrículas) -->
   <script type="text/babel" src="admin-dashboard.jsx"></script>
   <script type="text/babel" src="admin-alunos.jsx"></script>
   <script type="text/babel" src="admin-cursos.jsx"></script>
   <script type="text/babel" src="admin-matriculas.jsx"></script>
-
-  <!-- 7. Páginas do aluno (visualização dos próprios dados) -->
   <script type="text/babel" src="aluno.jsx"></script>
-
-  <!-- 8. Raiz da aplicação — DEVE ser o último (depende de tudo acima) -->
   <script type="text/babel" src="app.jsx"></script>
 
-  <!--
-    Remove a tela de loading após o React montar o primeiro componente.
-
-    Estratégia: MutationObserver observa o #root e aguarda que ele
-    receba um filho — sinal de que o React terminou de renderizar.
-
-    Por que não usar window.onload ou DOMContentLoaded?
-    O Babel carrega os JSX de forma assíncrona após o DOM estar pronto,
-    então esses eventos disparariam antes da interface estar montada.
-  -->
   <script>
     (function () {
       var root = document.getElementById('root');
@@ -303,12 +140,9 @@
       var observer = new MutationObserver(function () {
         if (root.children.length > 0) {
           screen.classList.add('oculto');
-
-          // Remove o elemento do DOM após o fade terminar (300ms, definido no CSS)
           setTimeout(function () {
             if (screen.parentNode) screen.parentNode.removeChild(screen);
           }, 350);
-
           observer.disconnect();
         }
       });
@@ -316,6 +150,5 @@
       observer.observe(root, { childList: true });
     })();
   </script>
-
 </body>
 </html>

@@ -1,9 +1,3 @@
-"""
-Schemas Pydantic para matrículas.
-
-MatriculaDetalhada inclui os objetos aninhados de aluno e curso,
-usada na listagem para o frontend não precisar fazer N+1 requests.
-"""
 from datetime import date, datetime
 from typing import Optional
 from pydantic import BaseModel, ConfigDict
@@ -35,7 +29,6 @@ class MatriculaOut(BaseModel):
 
 
 class MatriculaDetalhada(BaseModel):
-    """Versão completa com aluno e curso embutidos (evita N+1 no frontend)."""
     id:             int
     aluno_id:       int
     curso_id:       int

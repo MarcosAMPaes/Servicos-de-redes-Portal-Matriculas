@@ -1,10 +1,8 @@
-/* Admin pages: Dashboard, Alunos, Cursos, Matrículas */
 
 const PageWrap = ({ children }) => (
   <div style={{ padding: '28px 32px 48px', maxWidth: 1280, margin: '0 auto' }}>{children}</div>
 );
 
-/* ============ DASHBOARD ============ */
 const AdminDashboard = ({ alunos, cursos, matriculas, onNav }) => {
   const totAlunos = alunos.filter(a => a.ativo).length;
   const totCursos = cursos.filter(c => c.ativo).length;
@@ -18,7 +16,6 @@ const AdminDashboard = ({ alunos, cursos, matriculas, onNav }) => {
     { label: 'Canceladas', value: matriculas.filter(m => m.status === 'cancelada').length, color: 'var(--pastel-rose)'  },
   ];
 
-  /* matrículas por curso */
   const porCurso = cursos.filter(c => c.ativo).map(c => ({
     curso: c, count: matriculas.filter(m => m.curso_id === c.id && m.status === 'ativa').length,
   })).sort((a, b) => b.count - a.count);
@@ -37,7 +34,6 @@ const AdminDashboard = ({ alunos, cursos, matriculas, onNav }) => {
 
   return (
     <PageWrap>
-      {/* greeting */}
       <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 24 }}>
         <div>
           <div className="eyebrow" style={{ marginBottom: 8 }}>Visão geral · 2026.1</div>
@@ -52,7 +48,6 @@ const AdminDashboard = ({ alunos, cursos, matriculas, onNav }) => {
         </div>
       </div>
 
-      {/* stat cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 14 }}>
         {stats.map(s => (
           <div key={s.label} className="card" style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -70,9 +65,7 @@ const AdminDashboard = ({ alunos, cursos, matriculas, onNav }) => {
         ))}
       </div>
 
-      {/* charts row */}
       <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 14, marginBottom: 14 }}>
-        {/* matriculas por curso */}
         <div className="card" style={{ padding: 22 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 18 }}>
             <div>
@@ -110,7 +103,6 @@ const AdminDashboard = ({ alunos, cursos, matriculas, onNav }) => {
           </div>
         </div>
 
-        {/* status donut */}
         <div className="card" style={{ padding: 22 }}>
           <div className="eyebrow">Status das matrículas</div>
           <h3 style={{ fontSize: 16, marginTop: 6, marginBottom: 18 }}>Composição</h3>
@@ -140,7 +132,6 @@ const AdminDashboard = ({ alunos, cursos, matriculas, onNav }) => {
         </div>
       </div>
 
-      {/* recent matriculas + topology */}
       <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 14 }}>
         <div className="card" style={{ overflow: 'hidden' }}>
           <div style={{ padding: '18px 22px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -191,7 +182,6 @@ const AdminDashboard = ({ alunos, cursos, matriculas, onNav }) => {
           </table>
         </div>
 
-        {/* topology card */}
         <div className="card" style={{ padding: 22, display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div>
             <div className="eyebrow">Infraestrutura</div>
