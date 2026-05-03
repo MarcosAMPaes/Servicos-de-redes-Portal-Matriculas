@@ -1,0 +1,129 @@
+"""
+CRUD de matrículas — somente administradores.
+
+Exclusão lógica: DELETE altera status para 'cancelada'
+em vez de remover o registro, preservando o histórico.
+"""
+from datetime import date as _date
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+from typing import List
+from .. import models
+from ..database import get_db
+from ..security import require_admin
+from ..schemas.matriculas import (
+    MatriculaCreate, MatriculaUpdate,
+    MatriculaOut, MatriculaDetalhada,
+)
+
+router = APIRouter(prefix="/matriculas", tags=["Matrículas"])
+
+STATUS_VALIDOS = {"ativa", "trancada", "concluida", "cancelada"}
+
+
+@router.get("", response_model=List[MatriculaDetalhada])
+def listar_matriculas(
+    db: Session = Depends(get_db),
+    _: dict = Depends(require_admin),
+):
+    """Lista todas as matrículas com dados completos de aluno e curso."""
+    return db.query(models.Matricula).order_by(models.Matricula.id).all()
+
+
+@router.post("", response_model=MatriculaOut, status_code=status.HTTP_201_CREATED)
+def criar_matricula(
+    payload: MatriculaCreate,
+    db: Session = Depends(get_db),
+    _: dict = Depends(require_admin),
+):
+    """
+    Cria uma matrícula verificando:
+      1. Aluno existe e está ativo
+      2. Curso existe e está ativo
+      3. Combinação aluno+curso ainda não existe (unicidade)
+    """
+    if payload.status not in STATUS_VALIDOS:
+        raise HTTPException(status_code=400, detail=f"Status inválido. Use: {STATUS_VALIDOS}")
+
+    aluno = db.query(models.Aluno).filter(
+        models.Aluno.id == payload.aluno_id,
+        models.Aluno.ativo == True,
+    ).first()
+    if not aluno:
+        raise HTTPException(status_code=404, detail="Aluno não encontrado ou inativo.")
+
+    curso = db.query(models.Curso).filter(
+        models.Curso.id == payload.curso_id,
+        models.Curso.ativo == True,
+    ).first()
+    if not curso:
+        raise HTTPException(status_code=404, detail="Curso não encontrado ou inativo.")
+
+    duplicado = db.query(models.Matricula).filter(
+        models.Matricula.aluno_id == payload.aluno_id,
+        models.Matricula.curso_id == payload.curso_id,
+    ).first()
+    if duplicado:
+        raise HTTPException(status_code=409, detail="Aluno já matriculado neste curso.")
+
+    dados = payload.model_dump(exclude_none=True)
+    if "data_matricula" not in dados:
+        dados["data_matricula"] = _date.today()
+    matricula = models.Matricula(**dados)
+    db.add(matricula)
+    db.commit()
+    db.refresh(matricula)
+    return matricula
+
+
+@router.get("/{matricula_id}", response_model=MatriculaDetalhada)
+def obter_matricula(
+    matricula_id: int,
+    db: Session = Depends(get_db),
+    _: dict = Depends(require_admin),
+):
+    """Retorna uma matrícula pelo ID com dados completos."""
+    m = db.query(models.Matricula).filter(models.Matricula.id == matricula_id).first()
+    if not m:
+        raise HTTPException(status_code=404, detail="Matrícula não encontrada.")
+    return m
+
+
+@router.put("/{matricula_id}", response_model=MatriculaOut)
+def atualizar_matricula(
+    matricula_id: int,
+    payload: MatriculaUpdate,
+    db: Session = Depends(get_db),
+    _: dict = Depends(require_admin),
+):
+    """Atualiza status ou data de uma matrícula."""
+    m = db.query(models.Matricula).filter(models.Matricula.id == matricula_id).first()
+    if not m:
+        raise HTTPException(status_code=404, detail="Matrícula não encontrada.")
+
+    if payload.status and payload.status not in STATUS_VALIDOS:
+        raise HTTPException(status_code=400, detail=f"Status inválido. Use: {STATUS_VALIDOS}")
+
+    for campo, valor in payload.model_dump(exclude_none=True).items():
+        setattr(m, campo, valor)
+
+    db.commit()
+    db.refresh(m)
+    return m
+
+
+@router.delete("/{matricula_id}", status_code=status.HTTP_204_NO_CONTENT)
+def cancelar_matricula(
+    matricula_id: int,
+    db: Session = Depends(get_db),
+    _: dict = Depends(require_admin),
+):
+    """
+    Exclusão lógica: altera status para 'cancelada'.
+    O registro é mantido — histórico preservado para auditoria.
+    """
+    m = db.query(models.Matricula).filter(models.Matricula.id == matricula_id).first()
+    if not m:
+        raise HTTPException(status_code=404, detail="Matrícula não encontrada.")
+    m.status = "cancelada"
+    db.commit()
