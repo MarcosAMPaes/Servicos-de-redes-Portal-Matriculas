@@ -1,4 +1,16 @@
 
+import { useMemo, useState } from 'react';
+import API from './api.jsx';
+import {
+  Avatar,
+  ConfirmDialog,
+  EmptyState,
+  Icon,
+  Modal,
+  StatusBadge,
+  useToast,
+} from './ui.jsx';
+
 const MatriculaForm = ({ value, onChange, alunos, cursos }) => {
   const v = value || {};
   const editing = !!v.id;
@@ -253,3 +265,5 @@ const AdminMatriculas = ({ alunos, cursos, matriculas, setMatriculas }) => {
 };
 
 window.AdminMatriculas = AdminMatriculas;
+
+export { AdminMatriculas };

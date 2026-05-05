@@ -1,4 +1,4 @@
-const { useState, useEffect, useRef, useMemo, useCallback, createContext, useContext } = React;
+import React, { useState, useEffect, useCallback, createContext, useContext } from 'react';
 
 const Icon = ({ name, size = 16, stroke = 1.6 }) => {
   const paths = {
@@ -193,3 +193,16 @@ Object.assign(window, {
   Icon, Avatar, StatusBadge, Modal, ConfirmDialog,
   ToastProvider, useToast, SparkBars, Donut, EmptyState,
 });
+
+export {
+  Icon,
+  Avatar,
+  StatusBadge,
+  Modal,
+  ConfirmDialog,
+  ToastProvider,
+  useToast,
+  SparkBars,
+  Donut,
+  EmptyState,
+};

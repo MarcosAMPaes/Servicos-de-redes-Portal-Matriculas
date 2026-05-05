@@ -1,4 +1,16 @@
 
+import { useMemo, useState } from 'react';
+import API from './api.jsx';
+import {
+  Avatar,
+  ConfirmDialog,
+  EmptyState,
+  Icon,
+  Modal,
+  StatusBadge,
+  useToast,
+} from './ui.jsx';
+
 const AlunoForm = ({ value, onChange }) => {
   const v = value || {};
   const set = (k) => (e) => onChange({ ...v, [k]: e.target.value });
@@ -209,3 +221,5 @@ const AdminAlunos = ({ alunos, cursos, matriculas, setAlunos }) => {
 };
 
 window.AdminAlunos = AdminAlunos;
+
+export { AdminAlunos };
