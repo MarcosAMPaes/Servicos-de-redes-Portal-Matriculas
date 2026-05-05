@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import API from './api.jsx';
-import { ConfirmDialog, Icon, Modal, useToast } from './ui.jsx';
+import { ConfirmDialog, Icon, Modal, PageWrap, useToast } from './ui.jsx';
 
 const CURSO_CORES = ['blue', 'green', 'peach', 'lilac', 'rose'];
 
