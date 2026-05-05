@@ -1,5 +1,5 @@
 
-import { Avatar, EmptyState, Icon, StatusBadge } from './ui.jsx';
+import { Avatar, EmptyState, Icon, PageWrap, StatusBadge } from './ui.jsx';
 
 const AlunoHome = ({ session, cursos, matriculas, onNav }) => {
   const aluno = session.user;
