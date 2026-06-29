@@ -1,0 +1,124 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-portal_matriculas}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    secrets:
+      - postgres_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - portal_overlay
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.portal.layer == data
+      restart_policy:
+        condition: on-failure
+
+  loki:
+    image: grafana/loki:3.0.0
+    command: -config.file=/etc/loki/local-config.yaml
+    configs:
+      - source: loki_config
+        target: /etc/loki/local-config.yaml
+    volumes:
+      - loki_data:/loki
+    networks:
+      - portal_overlay
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.portal.layer == data
+      restart_policy:
+        condition: on-failure
+
+  fastapi:
+    image: ${FASTAPI_IMAGE:-portal-matriculas-fastapi:latest}
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-portal_matriculas}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-trocar_esta_chave_no_deploy}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      JWT_EXPIRES_MINUTES: ${JWT_EXPIRES_MINUTES:-120}
+      LOKI_URL: http://loki:3100
+      LOKI_SERVICE_NAME: fastapi
+    secrets:
+      - postgres_password
+    networks:
+      - portal_overlay
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/api/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    deploy:
+      replicas: 2
+      placement:
+        constraints:
+          - node.labels.portal.layer == app
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+
+  nginx:
+    image: ${NGINX_IMAGE:-portal-matriculas-nginx:latest}
+    ports:
+      - target: 8080
+        published: 80
+        protocol: tcp
+        mode: ingress
+      - target: 8443
+        published: 443
+        protocol: tcp
+        mode: ingress
+    networks:
+      - portal_overlay
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/api/health >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    deploy:
+      replicas: 2
+      placement:
+        constraints:
+          - node.labels.portal.layer == app
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+
+networks:
+  portal_overlay:
+    driver: overlay
+    attachable: true
+
+volumes:
+  postgres_data:
+    driver: local
+  loki_data:
+    driver: local
+
+configs:
+  loki_config:
+    file: ../loki/loki-config.yaml
+
+secrets:
+  postgres_password:
+    external: true

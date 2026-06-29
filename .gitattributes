@@ -1,2 +1,14 @@
-# Auto detect text files and perform LF normalization
+# Auto detect text files and perform LF normalization.
 * text=auto
+
+# Keep container/deployment files portable across Windows and Linux.
+.gitattributes text eol=lf
+**/Dockerfile text eol=lf
+Dockerfile text eol=lf
+*.dockerfile text eol=lf
+.dockerignore text eol=lf
+*.sh text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.conf text eol=lf
+.env.example text eol=lf

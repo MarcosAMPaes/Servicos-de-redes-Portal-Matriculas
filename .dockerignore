@@ -1,0 +1,10 @@
+.git
+.env
+__pycache__/
+*.pyc
+.venv/
+venv/
+docs/
+instruction.md
+docker-stack/
+loki/
