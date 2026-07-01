@@ -1,4 +1,8 @@
 
+import { useState } from 'react';
+import API from './api.jsx';
+import { ConfirmDialog, Icon, Modal, PageWrap, useToast } from './ui.jsx';
+
 const CURSO_CORES = ['blue', 'green', 'peach', 'lilac', 'rose'];
 
 const CursoForm = ({ value, onChange }) => {
@@ -192,3 +196,5 @@ const AdminCursos = ({ cursos, matriculas, alunos, setCursos }) => {
 };
 
 window.AdminCursos = AdminCursos;
+
+export { AdminCursos };

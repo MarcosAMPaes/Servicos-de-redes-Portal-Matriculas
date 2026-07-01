@@ -9,7 +9,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - netatividade01
+      - backend_db
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
@@ -25,7 +25,7 @@ services:
       - ./loki/loki-config.yaml:/etc/loki/local-config.yaml:ro
       - loki_data:/loki
     networks:
-      - netatividade01
+      - backend_db
     restart: unless-stopped
 
   fastapi:
@@ -43,12 +43,14 @@ services:
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:-trocar_esta_chave_em_ambiente_real}
       JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
       JWT_EXPIRES_MINUTES: ${JWT_EXPIRES_MINUTES:-120}
-      LOKI_URL: http://loki:3100
-      LOKI_SERVICE_NAME: fastapi
+      LOKI_URL: ${LOKI_URL:-http://loki:3100}
+      LOKI_SERVICE_NAME: ${LOKI_SERVICE_NAME:-fastapi}
+      LOKI_ENABLED: ${LOKI_ENABLED:-true}
     volumes:
       - ./backend/app:/app/app
     networks:
-      - netatividade01
+      - backend_db
+      - web
     depends_on:
       postgres:
         condition: service_healthy
@@ -63,25 +65,30 @@ services:
 
   nginx:
     build:
-      context: .
-      dockerfile: nginx/Dockerfile
+      context: ./frontend
+      dockerfile: Dockerfile
     container_name: portal_nginx
     ports:
       - "80:8080"
       - "443:8443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./frontend:/usr/share/nginx/html:ro
     networks:
-      - netatividade01
+      - web
     depends_on:
       fastapi:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/api/health >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
 
 networks:
-  netatividade01:
-    driver: bridge
+  backend_db:
+    internal: true
+  web:
 
 volumes:
   postgres_data:

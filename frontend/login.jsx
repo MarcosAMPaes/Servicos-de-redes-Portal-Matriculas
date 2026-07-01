@@ -1,4 +1,8 @@
 
+import { useState } from 'react';
+import API from './api.jsx';
+import { Icon } from './ui.jsx';
+
 const Login = ({ onLogin }) => {
   const [mode, setMode] = useState('admin');
   const [email, setEmail] = useState('admin@portal.local');
@@ -166,3 +170,5 @@ const Login = ({ onLogin }) => {
 };
 
 window.Login = Login;
+
+export { Login };

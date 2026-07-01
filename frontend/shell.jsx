@@ -1,4 +1,6 @@
 
+import { Icon, Avatar } from './ui.jsx';
+
 const Sidebar = ({ session, current, onNav, onLogout }) => {
   const adminNav = [
     { key: 'dashboard',   label: 'Dashboard',   icon: 'dashboard' },
@@ -136,3 +138,5 @@ const Topbar = ({ title, subtitle, actions, theme, onToggleTheme }) => (
 
 window.Sidebar = Sidebar;
 window.Topbar = Topbar;
+
+export { Sidebar, Topbar };

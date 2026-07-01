@@ -1,7 +1,5 @@
 
-const PageWrap = ({ children }) => (
-  <div style={{ padding: '28px 32px 48px', maxWidth: 1280, margin: '0 auto' }}>{children}</div>
-);
+import { Avatar, Donut, Icon, PageWrap, SparkBars, StatusBadge } from './ui.jsx';
 
 const AdminDashboard = ({ alunos, cursos, matriculas, onNav }) => {
   const totAlunos = alunos.filter(a => a.ativo).length;
@@ -218,3 +216,5 @@ const AdminDashboard = ({ alunos, cursos, matriculas, onNav }) => {
 };
 
 window.AdminDashboard = AdminDashboard;
+
+export { AdminDashboard };

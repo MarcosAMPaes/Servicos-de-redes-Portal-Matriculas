@@ -1,16 +1,25 @@
 
-const { useState: useStateApp, useEffect: useEffectApp } = React;
+import { useEffect, useState } from 'react';
+import API from './api.jsx';
+import { AdminAlunos } from './admin-alunos.jsx';
+import { AdminCursos } from './admin-cursos.jsx';
+import { AdminDashboard } from './admin-dashboard.jsx';
+import { AdminMatriculas } from './admin-matriculas.jsx';
+import { AlunoHome, AlunoMeusCursos, AlunoMeusDados } from './aluno.jsx';
+import { Login } from './login.jsx';
+import { Sidebar, Topbar } from './shell.jsx';
+import { Icon } from './ui.jsx';
 
 const App = () => {
-  const [session, setSession] = useStateApp(null);
-  const [route, setRoute] = useStateApp('dashboard');
-  const [theme, setTheme] = useStateApp(() => localStorage.getItem('pm-theme') || 'light');
+  const [session, setSession] = useState(null);
+  const [route, setRoute] = useState('dashboard');
+  const [theme, setTheme] = useState(() => localStorage.getItem('pm-theme') || 'light');
 
-  const [alunos, setAlunos]         = useStateApp([]);
-  const [cursos, setCursos]         = useStateApp([]);
-  const [matriculas, setMatriculas] = useStateApp([]);
+  const [alunos, setAlunos]         = useState([]);
+  const [cursos, setCursos]         = useState([]);
+  const [matriculas, setMatriculas] = useState([]);
 
-  useEffectApp(() => {
+  useEffect(() => {
     document.documentElement.dataset.theme = theme;
     localStorage.setItem('pm-theme', theme);
   }, [theme]);
@@ -57,7 +66,7 @@ const App = () => {
     setMatriculas([]);
   };
 
-  useEffectApp(() => {
+  useEffect(() => {
     const onMsg = (e) => {
       if (e.data?.type === '__activate_edit_mode')   window.__pmShowTweaks?.(true);
       if (e.data?.type === '__deactivate_edit_mode') window.__pmShowTweaks?.(false);
@@ -112,8 +121,8 @@ const App = () => {
 };
 
 const PMTweaks = ({ theme, setTheme }) => {
-  const [open, setOpen] = useStateApp(false);
-  useEffectApp(() => { window.__pmShowTweaks = setOpen; }, []);
+  const [open, setOpen] = useState(false);
+  useEffect(() => { window.__pmShowTweaks = setOpen; }, []);
   if (!open) return null;
   return (
     <div style={{
@@ -150,6 +159,4 @@ const PMTweaks = ({ theme, setTheme }) => {
   );
 };
 
-ReactDOM.createRoot(document.getElementById('root')).render(
-  <ToastProvider><App /></ToastProvider>
-);
+export { App };

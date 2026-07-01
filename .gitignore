@@ -8,6 +8,11 @@ __pycache__/
 .venv/
 venv/
 
+# Node/Vite
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
 # Certificados TLS (gerados localmente, não versionados)
 nginx/certs/*.crt
 nginx/certs/*.key

@@ -1,4 +1,6 @@
 
+import { Avatar, EmptyState, Icon, PageWrap, StatusBadge } from './ui.jsx';
+
 const AlunoHome = ({ session, cursos, matriculas, onNav }) => {
   const aluno = session.user;
   const minhasMat = matriculas.filter(m => m.aluno_id === aluno.id);
@@ -230,3 +232,5 @@ const AlunoMeusCursos = ({ session, cursos, matriculas }) => {
 window.AlunoHome = AlunoHome;
 window.AlunoMeusDados = AlunoMeusDados;
 window.AlunoMeusCursos = AlunoMeusCursos;
+
+export { AlunoHome, AlunoMeusDados, AlunoMeusCursos };
