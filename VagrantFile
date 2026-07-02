@@ -10,12 +10,17 @@ SHELL
 
 Vagrant.configure("2") do |config|
   config.vm.box = "ubuntu/jammy64"
+  config.vm.boot_timeout = 600
 
   config.vm.provider "virtualbox" do |vb|
     vb.memory = "2048"
     # nictype virtio evita travamento do driver e1000 no VirtualBox 7+.
     vb.customize ["modifyvm", :id, "--nictype1", "virtio"]
     vb.customize ["modifyvm", :id, "--nictype2", "virtio"]
+    # Necessário quando o Hyper-V está ativo no host (Windows cai para WHPX):
+    # sem isso o boot trava/estoura o timeout em vez de só ficar lento.
+    vb.customize ["modifyvm", :id, "--paravirtprovider", "hyperv"]
+    vb.customize ["setextradata", :id, "VBoxInternal/CPUM/Msrs/IgnoreUndef", "1"]
   end
 
   config.vm.define "vm2-app" do |app|
