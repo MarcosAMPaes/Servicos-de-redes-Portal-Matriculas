@@ -49,6 +49,7 @@ Somente o NGINX publica portas para fora do cluster. PostgreSQL, Loki e FastAPI 
 Servicos-de-redes-Portal-Matriculas/
 ├── README.md
 ├── docker-compose.yml              # Execucao local em uma maquina
+├── VagrantFile                     # Provisiona 2 VMs e forma o Swarm (apresentacao)
 ├── docker-stack/
 │   └── docker-stack.yml            # Stack Docker Swarm da entrega
 ├── backend/
@@ -141,7 +142,126 @@ docker compose down
 docker compose down -v
 ```
 
-## Provisionamento das VMs
+## Subir o cluster com Vagrant (recomendado para a apresentacao)
+
+Este e o caminho automatizado usado na apresentacao. O `VagrantFile` na raiz do repositorio provisiona **2 VMs** (Ubuntu 22.04), instala o Docker nas duas e **forma o Swarm sozinho** durante o `vagrant up`:
+
+| VM | Papel no Swarm | IP | Camada |
+| --- | --- | --- | --- |
+| `vm2-app` | Manager (Leader) | `192.168.56.12` | app (NGINX, FastAPI) |
+| `vm1-dados` | Worker | `192.168.56.11` | data (PostgreSQL, Loki) |
+
+A pasta do projeto e montada dentro das duas VMs em `/home/ubuntu/trabalho`, entao o codigo ja fica disponivel no cluster: nao e preciso clonar nada dentro da VM.
+
+### Pre-requisito no host Windows: desativar o Hyper-V
+
+O VirtualBox precisa de acesso direto a virtualizacao de hardware (VT-x). Se o Hyper-V estiver ativo, o VirtualBox cai para o modo WHPX, que e bem mais lento e pode causar timeout no boot das VMs.
+
+Abra o PowerShell **como Administrador** (clique direito -> "Executar como administrador"):
+
+```powershell
+# 1. Verificar se o Hyper-V esta ativo
+bcdedit /enum | findstr hypervisorlaunchtype
+# Se retornar "hypervisorlaunchtype Auto", esta ativo.
+
+# 2. Desativar
+bcdedit /set hypervisorlaunchtype off
+
+# 3. Reiniciar o Windows para aplicar
+Restart-Computer
+```
+
+Apos reiniciar, confirme (ainda em PowerShell como Administrador):
+
+```powershell
+bcdedit /enum | findstr hypervisorlaunchtype
+# Deve retornar "Off" ou nao retornar nada.
+```
+
+> Atencao: isso desativa WSL2, Docker Desktop e Windows Sandbox enquanto estiver desligado.
+> Para reverter depois: `bcdedit /set hypervisorlaunchtype auto` + `Restart-Computer`.
+
+### Subir as VMs
+
+Rode a partir da **raiz do repositorio** (onde esta o `VagrantFile`):
+
+```powershell
+vagrant destroy -f
+vagrant up --provider=virtualbox
+```
+
+Isso instala o Docker nas duas VMs e forma o Swarm (`vm2-app` como manager, `vm1-dados` como worker).
+
+### Verificar o cluster
+
+```powershell
+vagrant ssh vm2-app -c "sudo docker node ls"
+```
+
+Esperado: as duas VMs com `STATUS Ready` e `AVAILABILITY Active`, e `vm2-app` como `Leader`.
+
+### Deploy da stack
+
+Entrar na VM manager:
+
+```powershell
+vagrant ssh vm2-app
+```
+
+Dentro da `vm2-app`, o projeto ja esta em `/home/ubuntu/trabalho`:
+
+```bash
+cd /home/ubuntu/trabalho
+
+# 1. Labels de placement (separam a camada de dados da de aplicacao)
+sudo docker node update --label-add portal.layer=app vm2-app
+sudo docker node update --label-add portal.layer=data vm1-dados
+
+# 2. Secret com a senha do banco
+printf "20241si017" | sudo docker secret create postgres_password -
+
+# 3. Build das imagens locais (fastapi e nginx ficam fixadas na vm2)
+sudo docker build -t portal-matriculas-fastapi:latest ./backend
+sudo docker build -t portal-matriculas-nginx:latest -f nginx/Dockerfile .
+
+# 4. Deploy da stack
+sudo docker stack deploy --resolve-image never -c docker-stack/docker-stack.yml portal_matriculas
+```
+
+> Na primeira vez, a `vm1-dados` baixa as imagens publicas `postgres:16-alpine` e `grafana/loki:3.0.0` do Docker Hub, entao as VMs precisam de internet. As imagens `fastapi` e `nginx` sao construidas localmente na `vm2-app`; por isso o `--resolve-image never`.
+
+### Verificar o deploy
+
+```bash
+sudo docker stack services portal_matriculas
+sudo docker stack ps portal_matriculas
+curl http://192.168.56.12/api/health
+```
+
+Todos os servicos devem chegar com as replicas completas: `postgres 1/1`, `loki 1/1`, `fastapi 2/2`, `nginx 2/2`.
+
+Acesso pelo navegador do host: **http://192.168.56.12**
+
+### Encerrar
+
+Remover a stack e o secret (dentro da `vm2-app`):
+
+```bash
+sudo docker stack rm portal_matriculas
+sudo docker secret rm postgres_password
+```
+
+Destruir as VMs (na raiz do repositorio, no host):
+
+```powershell
+vagrant destroy -f
+```
+
+---
+
+## Provisionamento manual das VMs (alternativa)
+
+> Use esta secao apenas se **nao** for usar o Vagrant. O caminho recomendado para a apresentacao e a secao **Subir o cluster com Vagrant** acima; as etapas de deploy manual continuam validas na secao **Deploy em Docker Swarm** logo abaixo.
 
 O cluster usa **2 VMs** na mesma rede local. Qualquer ferramenta gratuita serve (VirtualBox, QEMU/KVM, Vagrant ou cloud com camada gratuita).
 
@@ -164,8 +284,8 @@ sudo usermod -aG docker $USER   # relogar apos executar
 Antes de criar o cluster, confirme que as VMs se enxergam (`ping <IP-da-outra-VM>`) e que as portas do Swarm estao liberadas entre elas: `2377/tcp` (gerenciamento), `7946/tcp+udp` (descoberta de nos) e `4789/udp` (trafego da rede overlay). Na VM2, clone este repositorio:
 
 ```bash
-git clone https://github.com/MarcosAMPaes/Servi-os-de-redes-Portal-Matriculas.git
-cd Servi-os-de-redes-Portal-Matriculas
+git clone https://github.com/MarcosAMPaes/Servicos-de-redes-Portal-Matriculas.git
+cd Servicos-de-redes-Portal-Matriculas
 ```
 
 ## Deploy em Docker Swarm
