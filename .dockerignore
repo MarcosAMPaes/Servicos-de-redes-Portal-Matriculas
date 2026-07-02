@@ -9,6 +9,6 @@ frontend/dist/
 frontend/.vite/
 frontend/npm-debug.log
 docs/
-instruction.md
+Instrucoes/
 docker-stack/
 loki/

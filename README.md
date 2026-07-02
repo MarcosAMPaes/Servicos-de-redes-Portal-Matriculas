@@ -2,7 +2,7 @@
 
 Sistema academico para gerenciamento de alunos, cursos e matriculas, desenvolvido para a disciplina Servicos de Redes para Internet.
 
-O tema herdado do Trabalho 01 e **Controle de Alunos e Cursos**. Para esta etapa, a aplicacao foi adaptada para rodar em **Docker Swarm**, conforme o enunciado em `instruction.md`.
+O tema herdado do Trabalho 01 e **Controle de Alunos e Cursos**. Para esta etapa, a aplicacao foi adaptada para rodar em **Docker Swarm**.
 
 ## Integrantes
 
@@ -19,21 +19,26 @@ O tema herdado do Trabalho 01 e **Controle de Alunos e Cursos**. Para esta etapa
 - Logs centralizados: Grafana Loki 3.0.0.
 - Orquestrador da entrega: Docker Swarm.
 
-## Topologia obrigatoria do Swarm
+## Topologia do cluster
 
 ```text
-VM1 - camada de dados (worker)
-  - postgres: 1 replica, volume local postgres_data
-  - loki:     1 replica, volume local loki_data
-
-VM2 - camada de aplicacao (manager)
-  - fastapi: 2 replicas, porta 8080 apenas na rede overlay
-  - nginx:   2 replicas, portas publicadas 80 e 443
-
-Rede interna: portal_matriculas_portal_overlay (overlay, attachable)
-Labels:
-  VM1: node.labels.portal.layer=data
-  VM2: node.labels.portal.layer=app
+┌──────────────────────────────────────┐   ┌──────────────────────────────────────┐
+│      VM1 — Camada de Dados (worker)  │   │   VM2 — Camada de Aplicacao (manager)│
+│      node.labels.portal.layer=data   │   │      node.labels.portal.layer=app    │
+│                                      │   │                                      │
+│  ┌──────────────┐  ┌──────────────┐  │   │  ┌──────────────┐  ┌──────────────┐  │
+│  │  postgres    │  │  loki        │  │   │  │  nginx       │  │  fastapi     │  │
+│  │  1 replica   │  │  1 replica   │  │   │  │  2 replicas  │  │  2 replicas  │  │
+│  │  porta 5432  │  │  porta 3100  │  │   │  │  80/443      │  │  porta 8080  │  │
+│  │  (interna)   │  │  (interna)   │  │   │  │  (publicas)  │  │  (interna)   │  │
+│  └──────────────┘  └──────────────┘  │   │  └──────────────┘  └──────────────┘  │
+│                                      │   │                                      │
+│  volumes locais:                     │   │  unico ponto de entrada externo      │
+│  postgres_data, loki_data            │   │                                      │
+└──────────────────┬───────────────────┘   └──────────────────┬───────────────────┘
+                   │                                          │
+                   └──── rede overlay (attachable) ───────────┘
+                       portal_matriculas_portal_overlay
 ```
 
 Somente o NGINX publica portas para fora do cluster. PostgreSQL, Loki e FastAPI ficam acessiveis apenas pela rede interna overlay.
@@ -59,14 +64,13 @@ Servicos-de-redes-Portal-Matriculas/
 │       ├── routes/
 │       └── schemas/
 ├── frontend/
-│   ├── Dockerfile                  # Build React/Vite e serve com NGINX
 │   ├── package.json
 │   ├── vite.config.js
 │   ├── index.html
 │   ├── src/main.jsx
 │   └── *.jsx / styles.css
 ├── nginx/
-│   ├── Dockerfile                  # Imagem NGINX para Swarm
+│   ├── Dockerfile                  # Builda o React/Vite e serve com NGINX (Compose e Swarm)
 │   └── nginx.conf                  # Frontend estatico e proxy /api
 └── loki/
     └── loki-config.yaml
@@ -79,8 +83,7 @@ Servicos-de-redes-Portal-Matriculas/
 - `loki/loki-config.yaml`: configuracao minima do Loki com armazenamento em volume local.
 - `backend/app/logger.py`: envia logs estruturados para `/loki/api/v1/push`.
 - `backend/app/database.py`: aceita senha por `POSTGRES_PASSWORD`, `POSTGRES_PASSWORD_FILE` ou `DATABASE_PASSWORD_FILE`.
-- `nginx/Dockerfile`: gera a imagem final do frontend para Swarm compilando o React/Vite e copiando o `nginx.conf`.
-- `frontend/Dockerfile`: build local do frontend usado pelo Docker Compose.
+- `nginx/Dockerfile`: unica imagem do frontend, usada no Compose e no Swarm; compila o React/Vite e copia o `nginx.conf`.
 
 ## Variaveis de ambiente
 
@@ -136,6 +139,33 @@ Encerrar:
 ```bash
 docker compose down
 docker compose down -v
+```
+
+## Provisionamento das VMs
+
+O cluster usa **2 VMs** na mesma rede local. Qualquer ferramenta gratuita serve (VirtualBox, QEMU/KVM, Vagrant ou cloud com camada gratuita).
+
+Configuracao usada como referencia:
+
+| Item | VM1 (dados) | VM2 (aplicacao) |
+| --- | --- | --- |
+| Sistema | Ubuntu Server 24.04 LTS | Ubuntu Server 24.04 LTS |
+| Recursos | 2 vCPU, 2 GB RAM, 20 GB disco | 2 vCPU, 2 GB RAM, 20 GB disco |
+| Rede | Modo bridge (mesma rede da VM2) | Modo bridge (mesma rede da VM1) |
+| Papel no Swarm | Worker | Manager |
+
+Em cada VM, instale o Docker Engine:
+
+```bash
+curl -fsSL https://get.docker.com | sudo sh
+sudo usermod -aG docker $USER   # relogar apos executar
+```
+
+Antes de criar o cluster, confirme que as VMs se enxergam (`ping <IP-da-outra-VM>`) e que as portas do Swarm estao liberadas entre elas: `2377/tcp` (gerenciamento), `7946/tcp+udp` (descoberta de nos) e `4789/udp` (trafego da rede overlay). Na VM2, clone este repositorio:
+
+```bash
+git clone https://github.com/MarcosAMPaes/Servi-os-de-redes-Portal-Matriculas.git
+cd Servi-os-de-redes-Portal-Matriculas
 ```
 
 ## Deploy em Docker Swarm
@@ -315,8 +345,10 @@ Todas as rotas passam pelo prefixo `/api` no NGINX.
 | GET | `/api/alunos/me/matriculas` | Aluno |
 | GET/POST | `/api/alunos` | Admin |
 | GET/PUT/DELETE | `/api/alunos/{id}` | Admin |
+| GET | `/api/alunos/{id}/cursos` | Admin |
 | GET/POST | `/api/cursos` | Admin |
 | GET/PUT/DELETE | `/api/cursos/{id}` | Admin |
+| GET | `/api/cursos/{id}/alunos` | Admin |
 | GET/POST | `/api/matriculas` | Admin |
 | GET/PUT/DELETE | `/api/matriculas/{id}` | Admin |
 

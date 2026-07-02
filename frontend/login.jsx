@@ -54,7 +54,7 @@ const Login = ({ onLogin }) => {
           }}>P/M</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-900)' }}>Portal de Matrículas</div>
-            <div className="mono" style={{ fontSize: 11, color: 'var(--ink-500)' }}>v0.1 · netatividade01</div>
+            <div className="mono" style={{ fontSize: 11, color: 'var(--ink-500)' }}>v1.0 · Docker Swarm</div>
           </div>
         </div>
 

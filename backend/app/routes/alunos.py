@@ -27,34 +27,6 @@ def meus_dados(current: dict = Depends(require_aluno)):
 
 
 @router.get(
-    "/me/cursos",
-    response_model=List[CursoOut],
-    tags=["👤 Área do Aluno"],
-    summary="Listar meus cursos",
-    description="""
-Lista somente os cursos em que o aluno autenticado está matriculado.
-
-Matrículas com status `cancelada` não aparecem no resultado.
-""",
-    responses={401: {"description": "Token de aluno ausente, inválido ou expirado."}},
-)
-def meus_cursos(
-    current: dict = Depends(require_aluno),
-    db: Session = Depends(get_db),
-):
-    aluno: models.Aluno = current["user"]
-    return (
-        db.query(models.Curso)
-        .join(models.Matricula, models.Matricula.curso_id == models.Curso.id)
-        .filter(
-            models.Matricula.aluno_id == aluno.id,
-            models.Matricula.status != "cancelada",
-        )
-        .all()
-    )
-
-
-@router.get(
     "/me/matriculas",
     response_model=List[MatriculaDetalhada],
     tags=["👤 Área do Aluno"],
@@ -239,7 +211,7 @@ def desativar_aluno(
     description="""
 Lista os cursos não cancelados vinculados a um aluno específico.
 
-Esta é uma visão administrativa; alunos usam `GET /api/alunos/me/cursos`.
+Esta é uma visão administrativa; alunos usam `GET /api/alunos/me/matriculas`.
 """,
     responses={
         403: {"description": "Acesso restrito a administradores."},

@@ -8,7 +8,6 @@ import { AdminMatriculas } from './admin-matriculas.jsx';
 import { AlunoHome, AlunoMeusCursos, AlunoMeusDados } from './aluno.jsx';
 import { Login } from './login.jsx';
 import { Sidebar, Topbar } from './shell.jsx';
-import { Icon } from './ui.jsx';
 
 const App = () => {
   const [session, setSession] = useState(null);
@@ -66,16 +65,6 @@ const App = () => {
     setMatriculas([]);
   };
 
-  useEffect(() => {
-    const onMsg = (e) => {
-      if (e.data?.type === '__activate_edit_mode')   window.__pmShowTweaks?.(true);
-      if (e.data?.type === '__deactivate_edit_mode') window.__pmShowTweaks?.(false);
-    };
-    window.addEventListener('message', onMsg);
-    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
-    return () => window.removeEventListener('message', onMsg);
-  }, []);
-
   if (!session) return <Login onLogin={onLogin} />;
 
   const isAdmin = session.tipo === 'admin';
@@ -115,46 +104,6 @@ const App = () => {
           {pageNode}
         </div>
       </main>
-      <PMTweaks theme={theme} setTheme={setTheme} />
-    </div>
-  );
-};
-
-const PMTweaks = ({ theme, setTheme }) => {
-  const [open, setOpen] = useState(false);
-  useEffect(() => { window.__pmShowTweaks = setOpen; }, []);
-  if (!open) return null;
-  return (
-    <div style={{
-      position: 'fixed', bottom: 20, right: 20, width: 280,
-      background: 'var(--bg-card)', border: '1px solid var(--line)',
-      borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)',
-      padding: 16, zIndex: 50,
-    }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-        <div>
-          <div className="eyebrow">Tweaks</div>
-          <h4 style={{ fontSize: 14, marginTop: 4 }}>Aparência</h4>
-        </div>
-        <button className="btn-icon" onClick={() => {
-          setOpen(false);
-          window.parent.postMessage({ type: '__edit_mode_dismissed' }, '*');
-        }}><Icon name="x" size={14} /></button>
-      </div>
-      <div className="eyebrow" style={{ marginBottom: 8 }}>Tema</div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-        {[['light', 'sun', 'Claro'], ['dark', 'moon', 'Escuro']].map(([k, ic, lab]) => (
-          <button key={k} onClick={() => setTheme(k)} style={{
-            padding: '12px 8px', borderRadius: 10,
-            border: '1px solid ' + (theme === k ? 'var(--ink-900)' : 'var(--line)'),
-            background: theme === k ? 'var(--bg-soft)' : 'var(--bg-card)',
-            color: 'var(--ink-900)', cursor: 'pointer',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 500,
-          }}>
-            <Icon name={ic} size={16} />{lab}
-          </button>
-        ))}
-      </div>
     </div>
   );
 };

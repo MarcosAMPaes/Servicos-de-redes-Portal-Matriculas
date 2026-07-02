@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, createContext, useContext } from 'react';
+import { STATUS_META } from './data.jsx';
 
 const Icon = ({ name, size = 16, stroke = 1.6 }) => {
   const paths = {
@@ -50,7 +51,7 @@ const Avatar = ({ name, color = 'blue', size = 'md' }) => {
 };
 
 const StatusBadge = ({ status }) => {
-  const meta = window.STATUS_META[status] || { label: status, badge: 'badge-neutral' };
+  const meta = STATUS_META[status] || { label: status, badge: 'badge-neutral' };
   return <span className={`badge badge-dot ${meta.badge}`}>{meta.label}</span>;
 };
 

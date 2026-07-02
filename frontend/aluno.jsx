@@ -165,7 +165,7 @@ const AlunoMeusCursos = ({ session, cursos, matriculas }) => {
   return (
     <PageWrap>
       <div style={{ marginBottom: 20 }}>
-        <div className="eyebrow">/api/alunos/me/cursos</div>
+        <div className="eyebrow">/api/alunos/me/matriculas</div>
         <h2 style={{ fontSize: 24, marginTop: 6, letterSpacing: '-0.02em' }}>
           Meus cursos <span className="mono" style={{ fontSize: 14, color: 'var(--ink-500)', fontWeight: 400, marginLeft: 6 }}>{minhas.length}</span>
         </h2>

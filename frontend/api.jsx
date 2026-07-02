@@ -47,6 +47,4 @@ const API = (() => {
   };
 })();
 
-window.API = API;
-
 export default API;

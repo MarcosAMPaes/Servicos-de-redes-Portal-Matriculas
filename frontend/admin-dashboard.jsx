@@ -183,12 +183,13 @@ const AdminDashboard = ({ alunos, cursos, matriculas, onNav }) => {
         <div className="card" style={{ padding: 22, display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div>
             <div className="eyebrow">Infraestrutura</div>
-            <h3 style={{ fontSize: 16, marginTop: 6 }}>Topologia · netatividade01</h3>
+            <h3 style={{ fontSize: 16, marginTop: 6 }}>Topologia · portal_overlay</h3>
           </div>
           {[
-            { name: 'nginx',    detail: 'proxy reverso · :80 (HTTP)', up: true,  vol: 'static' },
+            { name: 'nginx',    detail: 'proxy reverso · :80/:443',   up: true,  vol: 'static' },
             { name: 'fastapi',  detail: 'uvicorn · :8080 (interno)',  up: true,  vol: 'app code' },
             { name: 'postgres', detail: 'imagem oficial · pg_isready',up: true,  vol: 'postgres_data' },
+            { name: 'loki',     detail: 'logs · :3100 (interno)',     up: true,  vol: 'loki_data' },
           ].map(s => (
             <div key={s.name} style={{
               padding: '12px 14px', borderRadius: 10,
