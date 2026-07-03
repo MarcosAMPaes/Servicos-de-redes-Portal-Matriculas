@@ -22,6 +22,10 @@ nginx/certs/*.key
 .idea/
 .claude/
 
+# Vagrant/local VM state
+.vagrant/
+.vagrant-swarm/
+
 # OS
 .DS_Store
 Thumbs.db

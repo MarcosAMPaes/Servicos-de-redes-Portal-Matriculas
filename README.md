@@ -17,6 +17,7 @@ O tema herdado do Trabalho 01 e **Controle de Alunos e Cursos**. Para esta etapa
 - Banco de dados: PostgreSQL 16.
 - Proxy e frontend estatico: NGINX 1.27.
 - Logs centralizados: Grafana Loki 3.0.0.
+- Visualizacao de logs: Grafana na porta 3000.
 - Orquestrador da entrega: Docker Swarm.
 
 ## Topologia do cluster
@@ -41,7 +42,7 @@ O tema herdado do Trabalho 01 e **Controle de Alunos e Cursos**. Para esta etapa
                        portal_matriculas_portal_overlay
 ```
 
-Somente o NGINX publica portas para fora do cluster. PostgreSQL, Loki e FastAPI ficam acessiveis apenas pela rede interna overlay.
+O NGINX publica o portal nas portas 80 e 443. O Grafana publica a interface de logs na porta 3000. PostgreSQL, Loki e FastAPI ficam acessiveis apenas pela rede interna overlay.
 
 ## Estrutura principal
 
@@ -73,6 +74,9 @@ Servicos-de-redes-Portal-Matriculas/
 ├── nginx/
 │   ├── Dockerfile                  # Builda o React/Vite e serve com NGINX (Compose e Swarm)
 │   └── nginx.conf                  # Frontend estatico e proxy /api
+├── grafana/
+│   └── provisioning/datasources/
+│       └── loki.yml                # Datasource Loki provisionado automaticamente no Grafana
 └── loki/
     └── loki-config.yaml
 ```
@@ -82,6 +86,7 @@ Servicos-de-redes-Portal-Matriculas/
 - `docker-stack/docker-stack.yml`: define a stack Swarm com replicas, rede overlay, volumes, secret e placement constraints.
 - `docker-compose.yml`: ambiente local equivalente para desenvolvimento e testes em uma unica maquina.
 - `loki/loki-config.yaml`: configuracao minima do Loki com armazenamento em volume local.
+- `grafana/provisioning/datasources/loki.yml`: configura o datasource Loki automaticamente no Grafana.
 - `backend/app/logger.py`: envia logs estruturados para `/loki/api/v1/push`.
 - `backend/app/database.py`: aceita senha por `POSTGRES_PASSWORD`, `POSTGRES_PASSWORD_FILE` ou `DATABASE_PASSWORD_FILE`.
 - `nginx/Dockerfile`: unica imagem do frontend, usada no Compose e no Swarm; compila o React/Vite e copia o `nginx.conf`.
@@ -151,35 +156,78 @@ Este e o caminho automatizado usado na apresentacao. O `VagrantFile` na raiz do 
 | `vm2-app` | Manager (Leader) | `192.168.56.12` | app (NGINX, FastAPI) |
 | `vm1-dados` | Worker | `192.168.56.11` | data (PostgreSQL, Loki) |
 
-A pasta do projeto e montada dentro das duas VMs em `/home/ubuntu/trabalho`, entao o codigo ja fica disponivel no cluster: nao e preciso clonar nada dentro da VM.
+A pasta do projeto e montada dentro das duas VMs em `/home/vagrant/trabalho`, entao o codigo ja fica disponivel no cluster: nao e preciso clonar nada dentro da VM.
 
-### Pre-requisito no host Windows: desativar o Hyper-V
+### Pre-requisitos no host Windows
 
-O VirtualBox precisa de acesso direto a virtualizacao de hardware (VT-x). Se o Hyper-V estiver ativo, o VirtualBox cai para o modo WHPX, que e bem mais lento e pode causar timeout no boot das VMs.
+Use Windows 10/11 com virtualizacao habilitada na BIOS/UEFI (Intel VT-x ou AMD-V). Instale o VirtualBox e o Vagrant no PowerShell **como Administrador**:
+
+```powershell
+winget install --id Oracle.VirtualBox -e
+winget install --id Hashicorp.Vagrant -e
+shutdown /r /t 0
+```
+
+Apos reiniciar, valide:
+
+```powershell
+vagrant --version
+& "$env:ProgramFiles\Oracle\VirtualBox\VBoxManage.exe" --version
+```
+
+Se o comando `winget` nao existir, instale manualmente:
+
+- VirtualBox: https://www.virtualbox.org/wiki/Downloads
+- Vagrant: https://developer.hashicorp.com/vagrant/downloads
+
+### Desativar Hyper-V, VBS e Memory Integrity
+
+O VirtualBox precisa de acesso direto a virtualizacao de hardware (VT-x/AMD-V). Se o Hyper-V, VBS, Memory Integrity, Windows Hypervisor Platform ou Virtual Machine Platform ficarem ativos, o VirtualBox pode cair para o modo WHPX, ficar muito lento ou travar no boot das VMs.
 
 Abra o PowerShell **como Administrador** (clique direito -> "Executar como administrador"):
 
 ```powershell
-# 1. Verificar se o Hyper-V esta ativo
-bcdedit /enum | findstr hypervisorlaunchtype
-# Se retornar "hypervisorlaunchtype Auto", esta ativo.
-
-# 2. Desativar
+# Desativa a inicializacao do hypervisor do Windows
 bcdedit /set hypervisorlaunchtype off
+bcdedit /set vsmlaunchtype Off
 
-# 3. Reiniciar o Windows para aplicar
-Restart-Computer
+# Desativa recursos opcionais que carregam o hypervisor
+Disable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V-All -NoRestart
+Disable-WindowsOptionalFeature -Online -FeatureName VirtualMachinePlatform -NoRestart
+Disable-WindowsOptionalFeature -Online -FeatureName WindowsHypervisorPlatform -NoRestart
+Disable-WindowsOptionalFeature -Online -FeatureName Containers -NoRestart
+
+# Desativa VBS/Device Guard/Credential Guard/Memory Integrity via registro
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard" /v EnableVirtualizationBasedSecurity /t REG_DWORD /d 0 /f
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard" /v HyperVVirtualizationBasedSecurityOptout /t REG_DWORD /d 1 /f
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard" /v RequirePlatformSecurityFeatures /t REG_DWORD /d 0 /f
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity" /v Enabled /t REG_DWORD /d 0 /f
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\DeviceGuard" /v EnableVirtualizationBasedSecurity /t REG_DWORD /d 0 /f
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\DeviceGuard" /v LsaCfgFlags /t REG_DWORD /d 0 /f
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v LsaCfgFlags /t REG_DWORD /d 0 /f
+
+# Reinicia para aplicar
+shutdown /r /t 0
 ```
 
-Apos reiniciar, confirme (ainda em PowerShell como Administrador):
+Apos reiniciar, confirme no PowerShell:
 
 ```powershell
-bcdedit /enum | findstr hypervisorlaunchtype
-# Deve retornar "Off" ou nao retornar nada.
+Get-CimInstance Win32_ComputerSystem | Select-Object HypervisorPresent
 ```
 
-> Atencao: isso desativa WSL2, Docker Desktop e Windows Sandbox enquanto estiver desligado.
-> Para reverter depois: `bcdedit /set hypervisorlaunchtype auto` + `Restart-Computer`.
+O resultado esperado e:
+
+```text
+HypervisorPresent
+-----------------
+            False
+```
+
+Se ainda aparecer `True`, abra **Windows Security > Device security > Core isolation** e desligue **Memory integrity**. Reinicie e rode a verificacao novamente.
+
+> Atencao: esses comandos podem desativar WSL2, Docker Desktop, Windows Sandbox e recursos baseados em Hyper-V enquanto estiverem desligados.
+> Para reverter depois: `bcdedit /set hypervisorlaunchtype auto`, reative os recursos necessarios do Windows e reinicie.
 
 ### Subir as VMs
 
@@ -208,17 +256,18 @@ Entrar na VM manager:
 vagrant ssh vm2-app
 ```
 
-Dentro da `vm2-app`, o projeto ja esta em `/home/ubuntu/trabalho`:
+Dentro da `vm2-app`, o projeto ja esta em `/home/vagrant/trabalho`:
 
 ```bash
-cd /home/ubuntu/trabalho
+cd /home/vagrant/trabalho
 
 # 1. Labels de placement (separam a camada de dados da de aplicacao)
 sudo docker node update --label-add portal.layer=app vm2-app
 sudo docker node update --label-add portal.layer=data vm1-dados
 
 # 2. Secret com a senha do banco
-printf "20241si017" | sudo docker secret create postgres_password -
+sudo docker secret inspect postgres_password >/dev/null 2>&1 || \
+  printf "20241si017" | sudo docker secret create postgres_password -
 
 # 3. Build das imagens locais (fastapi e nginx ficam fixadas na vm2)
 sudo docker build -t portal-matriculas-fastapi:latest ./backend
@@ -228,7 +277,7 @@ sudo docker build -t portal-matriculas-nginx:latest -f nginx/Dockerfile .
 sudo docker stack deploy --resolve-image never -c docker-stack/docker-stack.yml portal_matriculas
 ```
 
-> Na primeira vez, a `vm1-dados` baixa as imagens publicas `postgres:16-alpine` e `grafana/loki:3.0.0` do Docker Hub, entao as VMs precisam de internet. As imagens `fastapi` e `nginx` sao construidas localmente na `vm2-app`; por isso o `--resolve-image never`.
+> Na primeira vez, a `vm1-dados` baixa as imagens publicas `postgres:16-alpine` e `grafana/loki:3.0.0`, e a `vm2-app` baixa `grafana/grafana:latest`, entao as VMs precisam de internet. As imagens `fastapi` e `nginx` sao construidas localmente na `vm2-app`; por isso o `--resolve-image never`.
 
 ### Verificar o deploy
 
@@ -238,9 +287,18 @@ sudo docker stack ps portal_matriculas
 curl http://192.168.56.12/api/health
 ```
 
-Todos os servicos devem chegar com as replicas completas: `postgres 1/1`, `loki 1/1`, `fastapi 2/2`, `nginx 2/2`.
+Todos os servicos devem chegar com as replicas completas: `postgres 1/1`, `loki 1/1`, `fastapi 2/2`, `nginx 2/2`, `grafana 1/1`.
 
-Acesso pelo navegador do host: **http://192.168.56.12**
+Acessos pelo navegador do host:
+
+| Recurso | URL |
+| --- | --- |
+| Portal | `http://192.168.56.12/` |
+| API health | `http://192.168.56.12/api/health` |
+| Swagger | `http://192.168.56.12/api/docs` |
+| Grafana | `http://192.168.56.12:3000/` |
+
+Credenciais padrao do Grafana: `admin` / `admin`.
 
 ### Encerrar
 
@@ -366,6 +424,7 @@ docker service ps portal_matriculas_postgres
 docker service ps portal_matriculas_loki
 docker service ps portal_matriculas_fastapi
 docker service ps portal_matriculas_nginx
+docker service ps portal_matriculas_grafana
 ```
 
 Validar o healthcheck pela entrada publica:
@@ -379,6 +438,7 @@ Acessos da aplicacao:
 - Frontend: `http://<IP-VM2>`
 - HTTPS com certificado autoassinado: `https://<IP-VM2>`
 - Swagger da API via NGINX: `http://<IP-VM2>/api/docs`
+- Grafana: `http://<IP-VM2>:3000`
 
 ## Logs no Loki
 
@@ -387,6 +447,26 @@ O FastAPI envia ao Loki os seguintes eventos exigidos:
 - Inicializacao da aplicacao.
 - Cada requisicao HTTP recebida, com metodo, rota, status e tempo de resposta.
 - Erros de conexao ou inicializacao do PostgreSQL.
+
+### Visualizar logs no Grafana
+
+Acesse `http://<IP-VM2>:3000` e entre com `admin` / `admin`. No menu lateral, abra **Explore**, selecione o datasource **Loki** e rode uma das consultas:
+
+```logql
+{service="fastapi"}
+```
+
+```logql
+{service="fastapi", event="http_request"}
+```
+
+```logql
+{service="fastapi", event="startup"}
+```
+
+Para gerar novos logs, acesse o portal pelo navegador, faca login ou navegue pelas telas, e depois rode a consulta novamente no Grafana.
+
+### Consultar Loki por linha de comando
 
 Como o Loki nao deve publicar a porta 3100 no host, consulte a API HTTP usando um container temporario conectado na rede overlay:
 
@@ -429,7 +509,7 @@ No manager:
 docker service ls
 ```
 
-Somente `portal_matriculas_nginx` deve aparecer com portas publicadas. Os servicos `postgres`, `loki` e `fastapi` nao devem listar portas em `PORTS`.
+Somente `portal_matriculas_nginx` e `portal_matriculas_grafana` devem aparecer com portas publicadas. Os servicos `postgres`, `loki` e `fastapi` nao devem listar portas em `PORTS`.
 
 De uma maquina fora do cluster, estes acessos diretos nao devem funcionar:
 
@@ -440,6 +520,7 @@ curl http://<IP-VM2>:8080/api/health
 ```
 
 O acesso externo correto e sempre pelo NGINX nas portas 80 e 443.
+O Grafana e a unica excecao, publicado na porta 3000 para visualizacao dos logs.
 
 ## Credenciais de demonstracao
 

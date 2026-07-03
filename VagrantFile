@@ -4,49 +4,50 @@ DOCKER_INSTALL = <<~SHELL
   apt-get update -y
   apt-get install -y -qq ca-certificates curl git > /dev/null
   command -v docker >/dev/null || curl -fsSL https://get.docker.com | sh
-  usermod -aG docker ubuntu
+  id ubuntu >/dev/null 2>&1 && usermod -aG docker ubuntu
+  id vagrant >/dev/null 2>&1 && usermod -aG docker vagrant
   systemctl enable --now docker
 SHELL
 
 Vagrant.configure("2") do |config|
   config.vm.box = "ubuntu/jammy64"
   config.vm.boot_timeout = 600
+  project_dir = "/home/vagrant/trabalho"
 
   config.vm.provider "virtualbox" do |vb|
     vb.memory = "2048"
     # nictype virtio evita travamento do driver e1000 no VirtualBox 7+.
     vb.customize ["modifyvm", :id, "--nictype1", "virtio"]
     vb.customize ["modifyvm", :id, "--nictype2", "virtio"]
-    # Necessário quando o Hyper-V está ativo no host (Windows cai para WHPX):
-    # sem isso o boot trava/estoura o timeout em vez de só ficar lento.
-    vb.customize ["modifyvm", :id, "--paravirtprovider", "hyperv"]
+    # Com Hyper-V/VBS desligado, o provedor padrao evita travas de boot no Ubuntu.
+    vb.customize ["modifyvm", :id, "--paravirtprovider", "default"]
     vb.customize ["setextradata", :id, "VBoxInternal/CPUM/Msrs/IgnoreUndef", "1"]
   end
 
   config.vm.define "vm2-app" do |app|
     app.vm.hostname = "vm2-app"
     app.vm.network "private_network", ip: "192.168.56.12"
-    app.vm.synced_folder ".", "/home/ubuntu/trabalho"
+    app.vm.synced_folder ".", project_dir
 
     app.vm.provision "shell", privileged: true, inline: DOCKER_INSTALL + <<~SHELL
       docker info | grep -q "Swarm: active" || docker swarm init --advertise-addr 192.168.56.12
-      mkdir -p /home/ubuntu/trabalho/.vagrant-swarm
+      mkdir -p #{project_dir}/.vagrant-swarm
       echo "docker swarm join --token $(docker swarm join-token worker -q) 192.168.56.12:2377" \
-        > /home/ubuntu/trabalho/.vagrant-swarm/join.sh
+        > #{project_dir}/.vagrant-swarm/join.sh
     SHELL
   end
 
   config.vm.define "vm1-dados" do |dados|
     dados.vm.hostname = "vm1-dados"
     dados.vm.network "private_network", ip: "192.168.56.11"
-    dados.vm.synced_folder ".", "/home/ubuntu/trabalho"
+    dados.vm.synced_folder ".", project_dir
 
     dados.vm.provision "shell", privileged: true, inline: DOCKER_INSTALL + <<~SHELL
       for i in $(seq 1 60); do
-        [ -f /home/ubuntu/trabalho/.vagrant-swarm/join.sh ] && break
+        [ -f #{project_dir}/.vagrant-swarm/join.sh ] && break
         sleep 5
       done
-      docker info | grep -q "Swarm: active" || bash /home/ubuntu/trabalho/.vagrant-swarm/join.sh
+      docker info | grep -q "Swarm: active" || bash #{project_dir}/.vagrant-swarm/join.sh
     SHELL
   end
 end

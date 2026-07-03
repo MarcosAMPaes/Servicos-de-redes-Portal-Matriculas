@@ -25,7 +25,9 @@ services:
       - ./loki/loki-config.yaml:/etc/loki/local-config.yaml:ro
       - loki_data:/loki
     networks:
-      - backend_db
+      backend_db:
+        aliases:
+          - loki
     restart: unless-stopped
 
   fastapi:
@@ -49,7 +51,9 @@ services:
     volumes:
       - ./backend/app:/app/app
     networks:
-      - backend_db
+      backend_db:
+        aliases:
+          - fastapi
       - web
     depends_on:
       postgres:
@@ -72,15 +76,33 @@ services:
       - "80:8080"
       - "443:8443"
     networks:
-      - web
+      web:
+        aliases:
+          - nginx
     depends_on:
       fastapi:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/api/health >/dev/null || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 5
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: portal_grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning/datasources/loki.yml:/etc/grafana/provisioning/datasources/loki.yml:ro
+    networks:
+      backend_db:
+      web:
+        aliases:
+          - grafana
+    depends_on:
+      - loki
     restart: unless-stopped
 
 networks:
@@ -91,3 +113,4 @@ networks:
 volumes:
   postgres_data:
   loki_data:
+  grafana_data:

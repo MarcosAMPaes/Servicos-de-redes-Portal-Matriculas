@@ -33,7 +33,9 @@ services:
     volumes:
       - loki_data:/loki
     networks:
-      - portal_overlay
+      portal_overlay:
+        aliases:
+          - loki
     deploy:
       replicas: 1
       placement:
@@ -58,7 +60,9 @@ services:
     secrets:
       - postgres_password
     networks:
-      - portal_overlay
+      portal_overlay:
+        aliases:
+          - fastapi
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8080/api/health || exit 1"]
       interval: 15s
@@ -87,12 +91,9 @@ services:
         protocol: tcp
         mode: ingress
     networks:
-      - portal_overlay
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/api/health >/dev/null || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 5
+      portal_overlay:
+        aliases:
+          - nginx
     deploy:
       replicas: 2
       placement:
@@ -101,6 +102,34 @@ services:
       update_config:
         parallelism: 1
         delay: 10s
+      restart_policy:
+        condition: on-failure
+
+  grafana:
+    image: grafana/grafana:latest
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    configs:
+      - source: grafana_loki_datasource
+        target: /etc/grafana/provisioning/datasources/loki.yml
+    volumes:
+      - grafana_data:/var/lib/grafana
+    ports:
+      - target: 3000
+        published: 3000
+        protocol: tcp
+        mode: ingress
+    networks:
+      portal_overlay:
+        aliases:
+          - grafana
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.portal.layer == app
       restart_policy:
         condition: on-failure
 
@@ -114,10 +143,14 @@ volumes:
     driver: local
   loki_data:
     driver: local
+  grafana_data:
+    driver: local
 
 configs:
   loki_config:
     file: ../loki/loki-config.yaml
+  grafana_loki_datasource:
+    file: ../grafana/provisioning/datasources/loki.yml
 
 secrets:
   postgres_password:
